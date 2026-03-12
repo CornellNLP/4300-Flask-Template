@@ -28,7 +28,7 @@ def json_to_csv1():
 
 with open("piratefolk_comments.csv", "w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(['id', 'timestamp', 'score', 'text'])
+    writer.writerow(['id', 'timestamp', 'score', 'controversiality', 'text'])
 
     directory_path = Path('./data/comments_data')
 
@@ -46,10 +46,11 @@ with open("piratefolk_comments.csv", "w", newline="") as f:
                 comment_timestamp = comment.get('created_utc')
                 comment_text = comment.get('body', '')
                 comment_score = comment.get('score', 0)
+                comment_controversiality = comment.get('controversiality', 0)
 
                 cleaned_text = comment_text.replace('\n', ' ').replace('\r', ' ').replace('"', '')
 
-                writer.writerow([comment_id, comment_timestamp, comment_score, cleaned_text])
+                writer.writerow([comment_id, comment_timestamp, comment_score, comment_controversiality, cleaned_text])
 
     
 
