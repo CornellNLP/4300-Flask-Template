@@ -20,8 +20,8 @@ def charCount():
 #create reverse postings for sent anal output to text file
 
 def createReversePostings():
-    docs = docs
-    comments = comments
+    # docs = docs
+    # comments = comments
     reverse_postings = {}
 
     texts = docs["text"].astype(str)
