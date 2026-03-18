@@ -21,3 +21,5 @@ helpers/*
 json_template/
 
 .env
+
+recipes_data.csv
