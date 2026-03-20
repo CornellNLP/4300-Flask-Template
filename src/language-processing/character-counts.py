@@ -31,6 +31,8 @@ def createReversePostings():
         persons = set(ent.text for ent in doc.ents if ent.label_ == "PERSON")
 
         for person in persons:
+            if person not in persons:
+                reverse_postings[person] = []
             reverse_postings[person].append(comment_id)
 
     return reverse_postings
