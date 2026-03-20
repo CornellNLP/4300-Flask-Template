@@ -204,7 +204,7 @@ def build_chunk_tfidf(con):
 
     sparse.save_npz(ART_DIR / "chunk_tfidf_matrix.npz", mat)
     with open(ART_DIR / "chunk_tfidf_vocab.json", "w") as f:
-        json.dump(vectorizer.vocabulary_, f)
+        json.dump({k: int(v) for k, v in vectorizer.vocabulary_.items()}, f)
     with open(ART_DIR / "chunk_ids.json", "w") as f:
         json.dump(chunk_ids, f)
 

@@ -88,14 +88,22 @@ def _create_schema(con: duckdb.DuckDBPyConnection):
 
 def _ingest_flavordb(con: duckdb.DuckDBPyConnection):
     details_path = RAW_DIR / "flavordb" / "entity_details.json"
-    entities_path = RAW_DIR / "flavordb" / "entities.json"
+    alt_flavordb2_path = RAW_DIR / "flavordb" / "flavourDB2.json"
 
-    if not details_path.exists():
-        print("  [skip] FlavorDB entity_details.json not found")
+    if details_path.exists():
+        with open(details_path, encoding="utf-8") as f:
+            details = json.load(f)
+    elif alt_flavordb2_path.exists():
+        with open(alt_flavordb2_path, encoding="utf-8") as f:
+            details = json.load(f)
+        print("  Using flavourDB2.json input")
+    else:
+        print("  [skip] FlavorDB data not found (expected entity_details.json or flavourDB2.json)")
         return
 
-    with open(details_path) as f:
-        details = json.load(f)
+    if not isinstance(details, list):
+        print("  [skip] FlavorDB payload has unexpected format (expected list of entities)")
+        return
 
     mol_map: dict[str, int] = {}
     mol_id_seq = 0
@@ -175,28 +183,38 @@ def _ingest_tastetrios(con: duckdb.DuckDBPyConnection):
     for csv_path in csv_files:
         with open(csv_path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
-            cols = [c.lower().strip() for c in (reader.fieldnames or [])]
+            def _norm(key: str) -> str:
+                return re.sub(r"[^a-z0-9]+", "", (key or "").lower())
+
             for row in reader:
-                row_lower = {k.lower().strip(): v for k, v in row.items()}
-                ing_a = (
-                    row_lower.get("ingredient_a")
-                    or row_lower.get("ingredient1")
-                    or row_lower.get("food_a")
-                    or ""
-                ).strip()
-                ing_b = (
-                    row_lower.get("ingredient_b")
-                    or row_lower.get("ingredient2")
-                    or row_lower.get("food_b")
-                    or ""
-                ).strip()
+                row_norm = {_norm(k): (v or "").strip() for k, v in row.items()}
+
+                # Support both pair and trio layouts.
+                ing1 = row_norm.get("ingredient1") or row_norm.get("ingredienta") or row_norm.get("fooda") or ""
+                ing2 = row_norm.get("ingredient2") or row_norm.get("ingredientb") or row_norm.get("foodb") or ""
+                ing3 = row_norm.get("ingredient3") or row_norm.get("ingredientc") or row_norm.get("foodc") or ""
+
                 compat = (
-                    row_lower.get("compatibility_level")
-                    or row_lower.get("compatibility")
-                    or row_lower.get("label")
+                    row_norm.get("compatibilitylevel")
+                    or row_norm.get("compatibility")
+                    or row_norm.get("classificationoutput")
+                    or row_norm.get("label")
                     or ""
-                ).strip()
-                if ing_a and ing_b:
+                )
+
+                pair_candidates = []
+                if ing1 and ing2:
+                    pair_candidates.append((ing1, ing2))
+                if ing1 and ing3:
+                    pair_candidates.append((ing1, ing3))
+                if ing2 and ing3:
+                    pair_candidates.append((ing2, ing3))
+
+                # If only a standard pair row exists, still ingest it.
+                if not pair_candidates and ing1 and ing2:
+                    pair_candidates.append((ing1, ing2))
+
+                for ing_a, ing_b in pair_candidates:
                     pair_id += 1
                     con.execute(
                         "INSERT OR IGNORE INTO compatibility_pairs VALUES (?, ?, ?, ?)",
@@ -330,6 +348,16 @@ def main():
     print("Row counts:")
     for t, c in row_counts.items():
         print(f"  {t}: {c:,}")
+
+    # Fail fast if core molecular corpus is empty, so the next step
+    # does not silently proceed into build_indices failures.
+    if row_counts["ingredients"] == 0 or row_counts["ingredient_molecules"] == 0:
+        print("\n[error] Core FlavorDB corpus is empty.")
+        print("        Ensure dataset files exist under data/raw/flavordb/")
+        print("        Then rerun:")
+        print("          python scripts/download_datasets.py flavordb")
+        print("          python scripts/build_duckdb.py")
+        raise SystemExit(1)
 
     print("\nNext step: python scripts/build_indices.py")
 
