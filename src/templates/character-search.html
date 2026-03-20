@@ -1,0 +1,456 @@
+<!doctype html>
+<title>Character Search - The Streets</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='character-search-new.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit&family=Montserrat&family=Open+Sans:wght@500&display=swap"
+    rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
+<body>
+    <div class="full-body-container character-search-layout">
+        <!-- Header -->
+        <div class="search-header">
+            <div class="header-branding">
+                <h1>The Streets</h1>
+            </div>
+            <div class="input-box" onclick="sendFocus()">
+                <img src="{{ url_for('static', filename='images/mag.png') }}" />
+                <input placeholder="Who's the current GOAT? Who fell off? Who's a fraud?" id="character-search-val"
+                    onkeyup="handleSearch(event)">
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-container" style="display: none;" class="results-container">
+
+            <!-- Hero Character Card -->
+            <div class="hero-card">
+                <!-- Navigation Arrows -->
+                <button class="nav-arrow prev-arrow" id="prev-char">‹</button>
+                <button class="nav-arrow next-arrow" id="next-char">›</button>
+
+                <div class="hero-content">
+                    <div class="hero-info">
+                        <div class="hero-label">Top Result for Your Query</div>
+                        <h1 id="hero-name">-</h1>
+                        <div class="hero-description" id="hero-summary">-</div>
+                        <button class="read-more-btn" onclick="expandSummary()">Related Info</button>
+                    </div>
+                    <div class="hero-artwork">
+                        <div class="artwork-placeholder" id="artwork-placeholder">
+                            <div class="rank-badge" id="hero-rank">GOAT</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid Section -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Rating</div>
+                        <div class="stat-value" id="grid-rating">9.2</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">💬</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Community Consensus</div>
+                        <div class="stat-value" id="grid-sentiment">Very Positive</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Mentions</div>
+                        <div class="stat-value" id="grid-comments">1.2K</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full Width Sections -->
+            <div class="full-width-sections">
+                <!-- Graph Section -->
+                <div class="graph-section">
+                    <h3>📈 Popularity Trend</h3>
+                    <p class="graph-context">Based on community discussion about "<span
+                            id="query-term">character</span>"</p>
+                    <div
+                        style="position: relative; height: 300px; width: 100%; background-color: #f5f5f5; border-radius: 4px;">
+                        <canvas id="ratingsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Evidence Section -->
+                <div class="evidence-section">
+                    <h3>💬 Community Evidence</h3>
+                    <p class="section-subtitle">What people are saying (<span id="retrieved-count">0</span> top
+                        comments)</p>
+                    <div id="retrieved-container" class="evidence-list">
+                        <!-- Retrieved comments will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        let chartInstance = null;
+        const characterKeys = ['luffy', 'zoro', 'nami'];
+        let currentCharacterIndex = 0;
+
+        // Mock data with dataset structure (score, timestamp, controversiality)
+        const mockCharacterData = {
+            'luffy': {
+                name: 'Luffy',
+                rank: 'GOAT',
+                currentRating: 9.2,
+                totalComments: 1243,
+                sentiment: 'Very Positive',
+                sentimentScore: 0.89,
+                summary: 'Based on 1,243 community comments, Luffy is currently viewed as the GOAT (Greatest of All Time) by the fandom. Recent discussion emphasizes his leadership, character development, and unprecedented power scaling. Community consensus highlights his unwavering determination and strategic thinking as defining traits.',
+                ratings_over_time: [
+                    { date: 'Mar 1', rating: 8.1 },
+                    { date: 'Mar 5', rating: 8.3 },
+                    { date: 'Mar 10', rating: 8.7 },
+                    { date: 'Mar 15', rating: 9.0 },
+                    { date: 'Mar 18', rating: 9.2 }
+                ],
+                comments: [
+                    { user: 'OneP1eceVol', text: 'The goat has returned to form. Best captain in anime.', sentiment: 'positive', rating: 10, score: 0.98, timestamp: '2 hours ago' },
+                    { user: 'AnimeJeff', text: 'Luffy\'s recent arc was insane. Character development is top tier.', sentiment: 'positive', rating: 9, score: 0.94, timestamp: '5 hours ago' },
+                    { user: 'ToeiAnimation', text: 'His leadership and determination inspire everyone around him.', sentiment: 'positive', rating: 9, score: 0.91, timestamp: '1 day ago' },
+                    { user: 'ShonenFan', text: 'Constantly improving and never giving up. That\'s what makes him legendary.', sentiment: 'positive', rating: 10, score: 0.88, timestamp: '2 days ago' }
+                ],
+                retrieved: [
+                    { user: 'OnePieceDaily', text: 'Luffy is just too strong now. The power scaling is insane.', sentiment: 'positive', score: 0.87, timestamp: '3 hours ago', controversiality: 0.2 },
+                    { user: 'YonkoWatch', text: 'Finally showing what a true Yonko captain can do.', sentiment: 'positive', score: 0.85, timestamp: '6 hours ago', controversiality: 0.1 },
+                    { user: 'AnimeDebate', text: 'People sleep on Luffy\'s strategic mind. Not just about fighting.', sentiment: 'positive', score: 0.83, timestamp: '8 hours ago', controversiality: 0.3 },
+                    { user: 'ToeiCritics', text: 'The animation for Luffy in the latest is chef\'s kiss.', sentiment: 'positive', score: 0.81, timestamp: '12 hours ago', controversiality: 0.0 },
+                    { user: 'ShutaiLuffy', text: 'Luffy solos verse. No cap. Fastest rise to greatness.', sentiment: 'positive', score: 0.79, timestamp: '1 day ago', controversiality: 0.5 },
+                    { user: 'CasualWatcher', text: 'He\'s got the best character arc I\'ve seen in shonen anime.', sentiment: 'positive', score: 0.77, timestamp: '1 day ago', controversiality: 0.15 },
+                    { user: 'TechniqueAnalyst', text: 'The way they adapted his techniques shows real understanding.', sentiment: 'positive', score: 0.75, timestamp: '2 days ago', controversiality: 0.1 },
+                    { user: 'HistoryBuff', text: 'Luffy\'s journey mirrors classic hero\'s journey perfectly.', sentiment: 'positive', score: 0.73, timestamp: '2 days ago', controversiality: 0.25 },
+                    { user: 'FightFan', text: 'His fights hit different this season. Choreography is peak.', sentiment: 'positive', score: 0.71, timestamp: '3 days ago', controversiality: 0.0 },
+                    { user: 'PotentialHunter', text: 'Still think he has more potential to unlock.', sentiment: 'positive', score: 0.68, timestamp: '3 days ago', controversiality: 0.35 }
+                ]
+            },
+            'zoro': {
+                name: 'Zoro',
+                rank: 'S+',
+                currentRating: 8.9,
+                totalComments: 1102,
+                sentiment: 'Very Positive',
+                sentimentScore: 0.85,
+                summary: 'Based on 1,102 community comments, Zoro ranks among the fandom\'s top-tier favorites. Discussion consistently praises his three-sword technique, unwavering loyalty, and exceptional combat choreography. The community views him as the strongest swordsman with high strategic value.',
+                ratings_over_time: [
+                    { date: 'Mar 1', rating: 8.5 },
+                    { date: 'Mar 5', rating: 8.6 },
+                    { date: 'Mar 10', rating: 8.7 },
+                    { date: 'Mar 15', rating: 8.8 },
+                    { date: 'Mar 18', rating: 8.9 }
+                ],
+                comments: [
+                    { user: 'SwordMaster', text: 'The swordsman\'s three-sword style is unmatched in the series.', sentiment: 'positive', rating: 9, score: 0.96, timestamp: '1 hour ago' },
+                    { user: 'StrengthGains', text: 'Zoro\'s determination and loyalty are inspiring.', sentiment: 'positive', rating: 9, score: 0.92, timestamp: '4 hours ago' },
+                    { user: 'CombatFan', text: 'His battles are the most technical and well-choreographed.', sentiment: 'positive', rating: 8, score: 0.89, timestamp: '1 day ago' }
+                ],
+                retrieved: [
+                    { user: 'ZoroSupporter', text: 'Zoro\'s scar makes him legendary. Best swordsman easily.', sentiment: 'positive', score: 0.88, timestamp: '2 hours ago', controversiality: 0.4 },
+                    { user: 'SwordTechnique', text: 'His three-sword technique is physics-defying but cool.', sentiment: 'positive', score: 0.86, timestamp: '5 hours ago', controversiality: 0.15 },
+                    { user: 'LoyaltyKing', text: 'Zoro\'s loyalty to his captain is unquestioned.', sentiment: 'positive', score: 0.84, timestamp: '9 hours ago', controversiality: 0.0 },
+                    { user: 'PowerRanking', text: 'Zoro is top 3 strongest characters, no doubt.', sentiment: 'positive', score: 0.82, timestamp: '1 day ago', controversiality: 0.3 },
+                    { user: 'TrainingArc', text: 'His training montages are always the best.', sentiment: 'positive', score: 0.80, timestamp: '1 day ago', controversiality: 0.0 },
+                    { user: 'StyleJunkie', text: 'Cool guy aesthetic plus incredible skill.', sentiment: 'positive', score: 0.78, timestamp: '2 days ago', controversiality: 0.1 },
+                    { user: 'ComicRelief', text: 'Even when he\'s lost, Zoro is entertaining.', sentiment: 'positive', score: 0.76, timestamp: '2 days ago', controversiality: 0.05 },
+                    { user: 'CharacterDev', text: 'Zoro\'s growth feels earned and natural.', sentiment: 'positive', score: 0.74, timestamp: '3 days ago', controversiality: 0.2 }
+                ]
+            },
+            'nami': {
+                name: 'Nami',
+                rank: 'A+',
+                currentRating: 8.4,
+                totalComments: 945,
+                sentiment: 'Positive',
+                sentimentScore: 0.78,
+                summary: 'Based on 945 community comments, Nami is recognized for exceptional character development and strategic importance. The community highlights her growth from victim to fighter, her weather manipulation abilities, and her often-underrated tactical thinking. Her role as navigator is valued as mission-critical.',
+                ratings_over_time: [
+                    { date: 'Mar 1', rating: 8.0 },
+                    { date: 'Mar 5', rating: 8.1 },
+                    { date: 'Mar 10', rating: 8.2 },
+                    { date: 'Mar 15', rating: 8.3 },
+                    { date: 'Mar 18', rating: 8.4 }
+                ],
+                comments: [
+                    { user: 'TeamNami', text: 'Nami\'s growth as a navigator and fighter is incredible.', sentiment: 'positive', rating: 8, score: 0.94, timestamp: '30 min ago' },
+                    { user: 'WeatherWatcher', text: 'Her weather manipulation abilities are so cool.', sentiment: 'positive', rating: 8, score: 0.91, timestamp: '3 hours ago' },
+                    { user: 'AnimeLovers', text: 'Nami has the best character development in the crew.', sentiment: 'positive', rating: 9, score: 0.88, timestamp: '1 day ago' }
+                ],
+                retrieved: [
+                    { user: 'NavigatorLife', text: 'Nami is the unsung hero. Navigation wins battles.', sentiment: 'positive', score: 0.87, timestamp: '1 hour ago', controversiality: 0.2 },
+                    { user: 'WeatherMaster', text: 'Nami\'s climate tech is creative and intuitive.', sentiment: 'positive', score: 0.85, timestamp: '4 hours ago', controversiality: 0.1 },
+                    { user: 'CharacterGrowth', text: 'From victim to fighter. Nami\'s arc is inspiring.', sentiment: 'positive', score: 0.83, timestamp: '7 hours ago', controversiality: 0.3 },
+                    { user: 'StrategyNerd', text: 'Her tactical thinking is often overlooked.', sentiment: 'positive', score: 0.81, timestamp: '1 day ago', controversiality: 0.25 },
+                    { user: 'CrewMember', text: 'Nami keeps everyone grounded and honest.', sentiment: 'positive', score: 0.79, timestamp: '1 day ago', controversiality: 0.0 },
+                    { user: 'AnimeFemale', text: 'Female lead character done right.', sentiment: 'positive', score: 0.77, timestamp: '2 days ago', controversiality: 0.4 }
+                ]
+            }
+        };
+
+        function sendFocus() {
+            document.getElementById('character-search-val').focus();
+        }
+
+        function handleSearch(event) {
+            const query = document.getElementById('character-search-val').value.toLowerCase().trim();
+
+            // Search only on Enter key
+            if (event.key === 'Enter' && query.length > 0) {
+                performSearch(query);
+            } else if (query.length === 0) {
+                document.getElementById('results-container').style.display = 'none';
+            }
+        }
+
+        function performSearch(query) {
+            let characterKey = null;
+            console.log(`performSearch called with query: "${query}"`);
+
+            // Map queries to characters based on intent
+            if (query.includes('goat') || query.includes('best') || query.includes('greatest')) {
+                characterKey = 'luffy';
+            } else if (query.includes('fraud') || query.includes('overrated') || query.includes('bad')) {
+                characterKey = 'nami';
+            } else if (query.includes('fell off') || query.includes('decline') || query.includes('drop')) {
+                characterKey = 'zoro';
+            } else {
+                // Direct character name search
+                for (const key in mockCharacterData) {
+                    if (query.includes(key) || mockCharacterData[key].name.toLowerCase().includes(query)) {
+                        characterKey = key;
+                        break;
+                    }
+                }
+            }
+
+            // Default to Luffy if no match
+            if (!characterKey) {
+                characterKey = 'luffy';
+            }
+
+            displayCharacterResults(characterKey, query);
+        }
+
+        function displayCharacterResults(characterKey, query) {
+            if (!query) {
+                query = document.getElementById('character-search-val').value.toLowerCase().trim();
+            }
+
+            const character = mockCharacterData[characterKey];
+            console.log(`Displaying results for ${character.name} (${characterKey}) based on query: "${query}"`);
+
+            // Show the results container
+            const resultsContainer = document.getElementById('results-container');
+            if (!resultsContainer) {
+                console.error('results-container not found');
+                return;
+            }
+            resultsContainer.style.display = 'block';
+
+            // Update hero section - with safety checks
+            const heroName = document.getElementById('hero-name');
+            const heroRank = document.getElementById('hero-rank');
+            const heroSummary = document.getElementById('hero-summary');
+
+            if (heroName) heroName.textContent = character.name;
+            if (heroRank) heroRank.textContent = character.rank;
+            if (heroSummary) heroSummary.textContent = character.summary;
+
+            // Update stats grid
+            const gridRating = document.getElementById('grid-rating');
+            const gridSentiment = document.getElementById('grid-sentiment');
+            const gridComments = document.getElementById('grid-comments');
+
+            if (gridRating) gridRating.textContent = character.currentRating.toFixed(1);
+            if (gridSentiment) gridSentiment.textContent = character.sentiment;
+
+            const commentsShort = character.totalComments >= 1000
+                ? (character.totalComments / 1000).toFixed(1) + 'K'
+                : character.totalComments;
+            if (gridComments) gridComments.textContent = commentsShort;
+
+            // Update query context (show what was searched)
+            const queryTerm = document.getElementById('query-term');
+            const retrievedCount = document.getElementById('retrieved-count');
+
+            if (queryTerm) queryTerm.textContent = query;
+            if (retrievedCount) retrievedCount.textContent = character.retrieved.length;
+
+            // Update chart
+            updateChart(character, query);
+
+            // Update retrieved documents
+            updateRetrieved(character);
+
+            // Scroll to results
+            document.getElementById('results-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function updateChart(character, query) {
+            try {
+                const chartCanvas = document.getElementById('ratingsChart');
+                if (!chartCanvas) {
+                    console.error('Chart canvas not found');
+                    return;
+                }
+
+                const ctx = chartCanvas.getContext('2d');
+
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+
+                const ratingData = character.ratings_over_time;
+                console.log(`Creating chart for ${character.name} with ${ratingData.length} data points`);
+
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ratingData.map(d => d.date),
+                        datasets: [{
+                            label: character.name + ' Rating',
+                            data: ratingData.map(d => d.rating),
+                            borderColor: '#4285F4',
+                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#4285F4',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: {
+                                    font: { size: 14 },
+                                    usePointStyle: true
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 6,
+                                max: 10,
+                                ticks: {
+                                    font: { size: 12 }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: { size: 12 }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Chart created successfully');
+            } catch (error) {
+                console.error('Error creating chart:', error);
+            }
+        }
+
+        function updateCommentary(character) {
+            const commentContainer = document.getElementById('commentary-container');
+            commentContainer.innerHTML = '';
+
+            character.comments.forEach(comment => {
+                const commentEl = document.createElement('div');
+                commentEl.className = `comment ${comment.sentiment}`;
+                commentEl.innerHTML = `
+                    <div class="comment-header">
+                        <span class="comment-user">@${comment.user}</span>
+                        <span class="comment-rating">${'★'.repeat(comment.rating)}</span>
+                    </div>
+                    <p class="comment-text">${comment.text}</p>
+                    <div class="comment-meta">
+                        <span class="relevance-score">Score: ${(comment.score * 100).toFixed(0)}%</span>
+                        <span class="timestamp">${comment.timestamp}</span>
+                    </div>
+                `;
+                commentContainer.appendChild(commentEl);
+            });
+        }
+
+        function updateRetrieved(character) {
+            try {
+                const retrievedContainer = document.getElementById('retrieved-container');
+                if (!retrievedContainer) {
+                    console.error('Retrieved container not found');
+                    return;
+                }
+
+                retrievedContainer.innerHTML = '';
+                console.log(`Clearing retrieved container and adding ${character.retrieved.length} comments`);
+
+                character.retrieved.forEach((comment, index) => {
+                    const commentEl = document.createElement('div');
+                    commentEl.className = `retrieved-comment ${comment.sentiment}`;
+                    commentEl.innerHTML = `
+                        <div class="retrieved-header">
+                            <span class="retrieved-user">@${comment.user}</span>
+                            <span class="retrieved-meta">${comment.timestamp}</span>
+                        </div>
+                        <p class="retrieved-text">${comment.text}</p>
+                        <div class="retrieved-footer">
+                            <span class="relevance-score">Relevance: ${(comment.score * 100).toFixed(0)}%</span>
+                            <span class="controversy-level">Controversy: ${(comment.controversiality * 100).toFixed(0)}%</span>
+                        </div>
+                    `;
+                    retrievedContainer.appendChild(commentEl);
+                    console.log(`Added comment ${index + 1}: ${comment.user}`);
+                });
+
+                console.log(`Successfully added all ${character.retrieved.length} comments for ${character.name}`);
+            } catch (error) {
+                console.error('Error updating retrieved comments:', error);
+            }
+        }
+
+        function expandSummary() {
+            alert('Full details coming soon!');
+        }
+
+        // Navigation between characters
+        document.addEventListener('DOMContentLoaded', function () {
+            const prevBtn = document.getElementById('prev-char');
+            const nextBtn = document.getElementById('next-char');
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function () {
+                    currentCharacterIndex = (currentCharacterIndex - 1 + characterKeys.length) % characterKeys.length;
+                    displayCharacterResults(characterKeys[currentCharacterIndex], 'browse');
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function () {
+                    currentCharacterIndex = (currentCharacterIndex + 1) % characterKeys.length;
+                    displayCharacterResults(characterKeys[currentCharacterIndex], 'browse');
+                });
+            }
+        });
+    </script>
+</body>

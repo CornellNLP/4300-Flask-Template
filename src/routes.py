@@ -34,14 +34,16 @@ def json_search(query):
 def register_routes(app):
     @app.route("/")
     def home():
-        if USE_LLM:
-            return render_template('chat.html')
-        return render_template('base.html')
+        return render_template('character-search.html')
 
     @app.route("/episodes")
     def episodes_search():
         text = request.args.get("title", "")
         return json_search(text)
+
+    @app.route("/characters")
+    def character_search():
+        return render_template('character-search.html')
 
     if USE_LLM:
         from llm_routes import register_chat_route
