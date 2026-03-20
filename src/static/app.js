@@ -22,7 +22,22 @@ function escapeHtml(value) {
 
 function recipeCard(recipe) {
   const title = recipe.title || recipe.name || "Untitled Recipe";
-  const image = recipe.image || recipe.image_url || "";
+  const rawImage =
+    recipe.image ||
+    recipe.image_url ||
+    recipe.img ||
+    recipe.thumbnail ||
+    recipe.thumb ||
+    recipe.photo ||
+    recipe.photo_url ||
+    "";
+
+  const image =
+    rawImage && String(rawImage).startsWith("http")
+      ? String(rawImage)
+      : rawImage
+      ? `http://127.0.0.1:5001/${String(rawImage).replace(/^\/+/, "")}`
+      : "";
   const servings = recipe.servings ?? "N/A";
   const calories =
     recipe.calories_per_serving ??
@@ -54,7 +69,7 @@ function recipeCard(recipe) {
     <article class="card">
       ${
         image
-          ? `<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.outerHTML='<div class=<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" />quot;card-image placeholder<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" />quot;>No Image</div>';" />`
+          ? `<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.outerHTML='<div class=<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.outerHTML='<div class=&quot;card-image placeholder&quot;>No Image</div>';" />quot;card-image placeholder<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.outerHTML='<div class=&quot;card-image placeholder&quot;>No Image</div>';" />quot;>No Image</div>';" />`
           : `<div class="card-image placeholder">No Image</div>`
       }
       <div class="card-body">
