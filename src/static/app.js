@@ -24,10 +24,29 @@ function recipeCard(recipe) {
   const title = recipe.title || recipe.name || "Untitled Recipe";
   const image = recipe.image || recipe.image_url || "";
   const servings = recipe.servings ?? "N/A";
-  const calories = recipe.calories_per_serving ?? recipe.calories ?? "N/A";
-  const protein = recipe.protein_per_serving ?? recipe.protein ?? "N/A";
-  const carbs = recipe.carbs_per_serving ?? recipe.carbs ?? "N/A";
-  const fat = recipe.fat_per_serving ?? recipe.fat ?? "N/A";
+  const calories =
+    recipe.calories_per_serving ??
+    recipe.calories ??
+    "N/A";
+
+  const protein =
+    recipe.protein_per_serving ??
+    recipe.protein_g ??
+    recipe.protein ??
+    "N/A";
+
+  const carbs =
+    recipe.carbs_per_serving ??
+    recipe.carbs_g ??
+    recipe.carbs ??
+    recipe.carbohydrates ??
+    "N/A";
+
+  const fat =
+    recipe.fat_per_serving ??
+    recipe.fat_g ??
+    recipe.fat ??
+    "N/A";
   const diet = recipe.diet || recipe.tags || "";
   const url = recipe.url || "";
 
@@ -35,7 +54,7 @@ function recipeCard(recipe) {
     <article class="card">
       ${
         image
-          ? `<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" />`
+          ? `<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.outerHTML='<div class=<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" />quot;card-image placeholder<img class="card-image" src="${escapeHtml(image)}" alt="${escapeHtml(title)}" />quot;>No Image</div>';" />`
           : `<div class="card-image placeholder">No Image</div>`
       }
       <div class="card-body">
@@ -88,6 +107,7 @@ async function fetchRecipes() {
     }
 
     const data = await response.json();
+  console.log("backend data:", data);
     const recipes = Array.isArray(data) ? data : (Array.isArray(data.recipes) ? data.recipes : []);
     renderRecipes(recipes);
   } catch (err) {
