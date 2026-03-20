@@ -1,6 +1,8 @@
 # file for similarity calculations and similar helper functions
 import numpy as np
-
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Helper to match_name
 def edit_distance(source: str, target: str):
@@ -55,14 +57,54 @@ def match_name(input_name: str, character_list: list[str]):
 # print(match_name("Bentha", character_list))
 
 # Current problem: Some characters have aliases. Should we use the aliases for later searching documents?
+# Should we add aliases to the current list? Would be hard to do in a systematic way...
 
 
 
+# Function 1.5: Create tf-idf matrix from docs
+def create_tfidf_matrix(filepath: str):
+    df = pd.read_csv(filepath)
 
-# Function 2: Return most relevant documents for query
+    df["text"] = df["text"].fillna("").astype(str)
+
+    docs = df["text"].tolist()
+    ids = df["id"].tolist()
+
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(docs)
+    return (ids, vectorizer, tfidf_matrix, docs)
+    
+
+
+# Function 2: Return k most relevant documents for query
 # 	- Assume "Search for character" checkbox is not checked. Then:
 # 	- Input example: "Most useless in Whole Cake arc"
 # 	- Output: Ranked comments based off cosine similarity
+def retrieve_k_docs(query, td_matrix, k, vectorizer, ids, docs):
+    query_vec = vectorizer.transform([query])
+    similarities = cosine_similarity(query_vec, td_matrix).flatten()
+
+    # get just top k indeces
+    top_indices = similarities.argsort()[::-1][:k]
+
+    rankings = []
+    for i in top_indices:
+        rankings.append({
+            "id": ids[i],
+            "score": similarities[i],
+            "text": docs[i]
+        })
+    
+    return rankings
+
+csv_path = "data/piratefolk_comments.csv"
+query = "usopp bum"
+ids, vectorizer, tfidf_matrix, docs = create_tfidf_matrix(csv_path)
+rankings = retrieve_k_docs(query, tfidf_matrix, 10, vectorizer, ids, docs)
+
+for ranking in rankings:
+    print(ranking["text"])
+
 
 
 
