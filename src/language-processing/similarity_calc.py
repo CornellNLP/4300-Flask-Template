@@ -48,11 +48,13 @@ def match_name(input_name: str, character_list: list[str]):
             best_edit_distance = char_edit_dist
     return best_match;
     
-# test:
-# character_list = file_to_list_stripped("data/character_names_short.txt")
+
+# character_list = file_to_list_stripped("data/character_names.txt")
 # print(match_name("Monkey D Luffy", character_list))
 # print(match_name("Nami", character_list))
-# print(match_name("Vinsmok Sanji", character_list))
+# print(match_name("Bentha", character_list))
+
+# Current problem: Some characters have aliases. Should we use the aliases for later searching documents?
 
 
 
