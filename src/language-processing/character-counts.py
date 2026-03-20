@@ -58,7 +58,7 @@ def write_reverse_postings_to_csv(filename="reverse_postings.csv"):
     df.to_csv(filename, index=False, encoding="utf-8")
 
 # Run it
-write_reverse_postings_to_csv()
+#write_reverse_postings_to_csv()
 #write_counts_to_csv()
 
 

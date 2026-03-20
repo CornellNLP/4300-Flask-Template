@@ -1,10 +1,9 @@
 
 
-#use reverse postings
-#character intitialized to 100
-#make dict date:sentiment
-#get sent of each posting, subtract or add aura at each date. 
-#plot and output to image
+#load sentiment analyis model
+#categorize as positive negative neutral
 
-def plot_discussion(characterName):
-    return
+sentiments = POSITIVE | NEGATIVE | NEUTRAL
+
+def get_sentiment(text):
+    
