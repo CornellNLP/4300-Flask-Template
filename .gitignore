@@ -21,3 +21,5 @@ helpers/*
 json_template/
 
 .env
+# Ignore raw dataset since we use gzip version
+dataset.csv

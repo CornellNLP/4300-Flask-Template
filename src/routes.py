@@ -1,48 +1,68 @@
 """
-Routes: home page and episode search.
-
-To enable AI chat, set USE_LLM = True below. See llm_routes.py for LLM specific routes.
+Routes: home page and disease search.
 """
 import json
+import os
+import pandas as pd
+import numpy as np
 from flask import render_template, request
-from models import db, Episode, Review
 
-# ── AI toggle ──
-USE_LLM = False
-# USE_LLM = True
-# ───────────────
+# Load dataset once
+basedir = os.path.dirname(os.path.abspath(__file__))
+dataset_path = os.path.join(basedir, 'dataset.csv.gz')
+df = pd.read_csv(dataset_path)
 
+# Create a list of symptoms (excluding the 'diseases' column)
+symptoms = df.columns[1:].tolist()
 
 def json_search(query):
     if not query or not query.strip():
-        query = "Kardashian"
-    results = db.session.query(Episode, Review).join(
-        Review, Episode.id == Review.id
-    ).filter(
-        Episode.title.ilike(f'%{query}%')
-    ).all()
+        return json.dumps([])
+    
+    query = query.lower()
+    
+    # 1. Extract keyword matches
+    user_vector = []
+    matched_symptoms_list = []
+    for sym in symptoms:
+        if sym.lower() in query:
+            user_vector.append(1)
+            matched_symptoms_list.append(sym)
+        else:
+            user_vector.append(0)
+            
+    # 2. Similarity calculation (dot product between user symptoms and disease matrix)
+    user_vec_np = np.array(user_vector)
+    
+    if sum(user_vector) == 0:
+        return json.dumps([])
+        
+    disease_matrix = df.iloc[:, 1:].values
+    scores = disease_matrix.dot(user_vec_np)
+    
+    # Group by disease and take max score (since Kaggle dataset has multiple rows per illness)
+    df_scored = df.copy()
+    df_scored['score'] = scores
+    disease_scores = df_scored.groupby('diseases')['score'].max().reset_index()
+    
+    # 3. Filter and rank illnesses
+    top_results = disease_scores[disease_scores['score'] > 0].sort_values(by='score', ascending=False).head(10)
+    
     matches = []
-    for episode, review in results:
+    for _, row in top_results.iterrows():
         matches.append({
-            'title': episode.title,
-            'descr': episode.descr,
-            'imdb_rating': review.imdb_rating
+            'disease': str(row['diseases']).title(),
+            'score': int(row['score']),
+            'matched_symptoms': ", ".join(matched_symptoms_list)
         })
     return json.dumps(matches)
-
 
 def register_routes(app):
     @app.route("/")
     def home():
-        if USE_LLM:
-            return render_template('chat.html')
         return render_template('base.html')
 
-    @app.route("/episodes")
-    def episodes_search():
-        text = request.args.get("title", "")
+    @app.route("/search")
+    def search_endpoint():
+        text = request.args.get("query", "")
         return json_search(text)
-
-    if USE_LLM:
-        from llm_routes import register_chat_route
-        register_chat_route(app, json_search)
