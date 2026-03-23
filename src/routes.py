@@ -43,10 +43,10 @@ def json_search(query):
     character_score = similarity_calc.get_character_rating(name)
     rating = similarity_calc.to_star_rating(character_score)
     print("\033[32m" + "Rating: " + str(rating) + "\033[0m")
-    
+
     rating = f"{float(rating):.1f}"
     return json.dumps({
-        "name": name,
+        "name": query,
         "summary": summary,
         "retrieved": retrieved,
         "rating": rating

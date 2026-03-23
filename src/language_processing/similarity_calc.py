@@ -153,6 +153,16 @@ def get_character_rating(character: str, start_timestap=start_of_dataset_timesta
 def to_star_rating(raw_score: float) -> float:
     return (raw_score + 1) * 5
 
+# for popularity trend graph, splits interval into k parts and get charater rating for each part
+    def get_character_rating_over_time(character: str, k: int, start_timestamp=start_of_dataset_timestamp, end_timestamp=end_of_dataset_timestamp):
+        interval = (end_timestamp - start_timestamp) // k
+        scores = []
+        for i in range(k):
+            sub_interval_start = start_timestamp + i * interval
+            sub_interval_end = end_timestamp if i == k - 1 else sub_interval_start + interval
+            score = get_character_rating(character, start_timestap=sub_interval_start, end_timestamp=sub_interval_end)
+            scores.append(score)
+        return scores
 
 
 
