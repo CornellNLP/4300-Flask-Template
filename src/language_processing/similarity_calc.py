@@ -81,6 +81,7 @@ def create_tfidf_matrix(filepath: str):
     return (ids, vectorizer, tfidf_matrix, docs)
     
 
+ids, vectorizer, tfidf_matrix, docs = create_tfidf_matrix("data/piratefolk_comments.csv")
 
 # Function 2: Return k most relevant documents for query
 # 	- Assume "Search for character" checkbox is not checked. Then:
@@ -125,8 +126,8 @@ sid = SentimentIntensityAnalyzer()
 start_of_dataset_timestamp = 1678648020
 end_of_dataset_timestamp = 1741543624
 
-docs = pd.read_csv("data/piratefolk_comments.csv")
-comments = docs.dropna(subset=["text"]).to_dict("records")
+df = pd.read_csv("data/piratefolk_comments.csv")
+comments = df.dropna(subset=["text"]).to_dict("records")
 
 
 

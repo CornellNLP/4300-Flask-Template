@@ -33,9 +33,24 @@ def json_search(query):
 
     if not query or not query.strip():
         query = "Luffy"
+    print("\033[32m" + "Query: " + query + "\033[0m")
     name = similarity_calc.match_name(query, similarity_calc.char_list)
+    print("\033[32m" + "Name: " + name + "\033[0m")
     matches = similarity_calc.retrieve_k_docs(name, similarity_calc.tfidf_matrix, 10, similarity_calc.vectorizer, similarity_calc.ids, similarity_calc.docs)
-    return json.dumps(matches)
+    summary = "Summary..."
+    retrieved = matches
+
+    character_score = similarity_calc.get_character_rating(name)
+    rating = similarity_calc.to_star_rating(character_score)
+    print("\033[32m" + "Rating: " + str(rating) + "\033[0m")
+    
+    rating = f"{float(rating):.1f}"
+    return json.dumps({
+        "name": name,
+        "summary": summary,
+        "retrieved": retrieved,
+        "rating": rating
+    })
 
 def register_routes(app):
     @app.route("/")
