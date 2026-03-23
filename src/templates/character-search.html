@@ -221,29 +221,106 @@
             let characterKey = null;
             console.log(`performSearch called with query: "${query}"`);
 
-            // Map queries to characters based on intent
-            if (query.includes('goat') || query.includes('best') || query.includes('greatest')) {
-                characterKey = 'luffy';
-            } else if (query.includes('fraud') || query.includes('overrated') || query.includes('bad')) {
-                characterKey = 'nami';
-            } else if (query.includes('fell off') || query.includes('decline') || query.includes('drop')) {
-                characterKey = 'zoro';
-            } else {
-                // Direct character name search
-                for (const key in mockCharacterData) {
-                    if (query.includes(key) || mockCharacterData[key].name.toLowerCase().includes(query)) {
-                        characterKey = key;
-                        break;
-                    }
+            fetch(`/episodes?title=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Backend returned:", data);
+                    displayResultsFromBackend(data, query);
+                })
+                .catch(error => {
+                    console.error("Error fetching from backend:", error)
+                })
+
+        }
+
+        function displayResultsFromBackend(data, query) {
+            const resultsContainer = document.getElementById('results-container');
+            resultsContainer.style.display = 'block';
+
+            document.getElementById('hero-name').textContent = data.name;
+            document.getElementById('hero-summary').textContent = data.summary || `Results for "${query}" based on community discussion.`;
+            document.getElementById('hero-rank').textContent = data.rating > 8 ? 'GOAT' : data.rating > 6 ? 'S' : 'A';
+
+            document.getElementById('grid-rating').textContent = data.rating.toFixed ? data.rating.toFixed(1) : data.rating;
+            document.getElementById('grid-sentiment').textContent = data.consensus || (data.rating > 8 ? 'Very Positive' : data.rating > 6 ? 'Positive' : 'Neutral');
+            document.getElementById('grid-comments').textContent = data.mentions || data.retrieved.length;
+
+            document.getElementById('query-term').textContent = query;
+            document.getElementById('retrieved-count').textContent = data.retrieved.length;
+
+            updateRetrievedFromBackend(data.retrieved);
+            updateChartFromBackend(data.trend, data.trend_dates, query);
+
+            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function updateRetrievedFromBackend(retrieved) {
+            const retrievedContainer = document.getElementById('retrieved-container');
+            retrievedContainer.innerHTML = '';
+
+            retrieved.forEach((item, index) => {
+                const commentEl = document.createElement('div');
+                commentEl.className = 'retrieved-comment positive'; // assume positive
+                commentEl.innerHTML = `
+                    <div class="retrieved-header">
+                        <span class="retrieved-user">@User${index + 1}</span>
+                        <span class="retrieved-meta">Score: ${(item.score * 100).toFixed(0)}%</span>
+                    </div>
+                    <p class="retrieved-text">${item.text}</p>
+                    <div class="retrieved-footer">
+                        <span class="relevance-score">Relevance: ${(item.score * 100).toFixed(0)}%</span>
+                        <span class="controversy-level">ID: ${item.id}</span>
+                    </div>
+                `;
+                retrievedContainer.appendChild(commentEl);
+            });
+        }
+
+        function updateChartFromBackend(trendValues, trendDates, query) {
+            try {
+                const chartCanvas = document.getElementById('ratingsChart');
+                if (!chartCanvas) {
+                    console.error('Chart canvas not found');
+                    return;
                 }
-            }
 
-            // Default to Luffy if no match
-            if (!characterKey) {
-                characterKey = 'luffy';
-            }
+                const ctx = chartCanvas.getContext('2d');
 
-            displayCharacterResults(characterKey, query);
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+
+                const labels = trendDates || trendValues.map((v, idx) => `T${idx + 1}`);
+
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Star rating for "' + query + '"',
+                            data: trendValues,
+                            borderColor: '#4285F4',
+                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#4285F4',
+                            pointBorderColor: '#fff',
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { min: 0, max: 10 },
+                            x: { ticks: { display: true } }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error updating backend chart:', error);
+            }
         }
 
         function displayCharacterResults(characterKey, query) {
