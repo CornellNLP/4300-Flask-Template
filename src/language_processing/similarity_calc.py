@@ -7,6 +7,7 @@ import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import joblib
 
 
 
@@ -55,6 +56,15 @@ def query_character(query, vectorizer, tfidf_matrix, characters, top_k=1):
         return query
     else:
         return characters[best_index]
+
+def make_pickle():
+    joblib.dump({
+    "matrix": tfidf_matrix,
+    "vectorizer": vectorizer,
+    "characters": characters
+}, "data/model.pkl")
+    
+#make_pickle()
 
 print("below is case sensitive teest")
 print(get_comments_by_character("Kuro") == get_comments_by_character("kuro"))
