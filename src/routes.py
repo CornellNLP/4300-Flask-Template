@@ -78,14 +78,15 @@ def register_routes(app):
         })
     @app.route("/csearch")
     def csearch():
-        query = request.args.get("q", "")
-        if not query:
+        name = request.args.get("q", "")
+        print(f"Received Csearch query: '{name}'")
+        if not name:
             return json.dumps({})
-        for name in character_data:
-            if query in name:
-                print(f"found character: {name}")
-                return json.dumps({name: character_data[name]})
-        print(f"{query} is not a character name")
+        if name in character_data.keys():
+            print(f"Exact match found for {name}")
+            print(json.dumps(character_data[name]))
+            return json.dumps(character_data[name])
+        print(f"{name} is not a character name")
 
     # fallback (nothing found)
         return json.dumps({})

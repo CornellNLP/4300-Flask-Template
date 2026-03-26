@@ -233,7 +233,7 @@ function performSearch(query) {
            ;
         })
         .catch(err => {
-            console.error('Search failed:', err);
+            console.log(`Error during search for "${characterName}":`, err);
             displayCharacterResults('ERROR', trimmedQuery); 
         });
 }
