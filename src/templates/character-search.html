@@ -317,16 +317,18 @@
                 }
 
                 const ratingData = character.ratings_over_time.map(d => ({
-                    date: new Date(d[0] * 1000),
-                    rating: d[1],
-                    sentiment: d[2]
+                    date: new Date(d.date * 1000),
+                    rating: d.rating,
+                    sentiment: d.sentiment
                 }));
+                const maxRating = Math.max(...ratingData.map(d => d.rating)); // finds max rating to determine
+                // y-axis scale
                 console.log(`Creating chart for ${character.name} with ${ratingData.length} data points`);
 
                 chartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: ratingData.map(d => d.date),
+                        labels: ratingData.map(d => d.date.toLocaleDateString()),
                         datasets: [{
                             label: character.name + ' Rating',
                             data: ratingData.map(d => d.rating),
@@ -357,8 +359,8 @@
                         scales: {
                             y: {
                                 beginAtZero: false,
-                                min: 6,
-                                max: 10,
+                                min: 0,
+                                max: maxRating + 10,
                                 ticks: {
                                     font: { size: 12 }
                                 }
