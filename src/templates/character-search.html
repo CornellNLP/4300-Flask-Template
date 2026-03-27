@@ -217,90 +217,89 @@
             }
         }
 
-function performSearch(query) {
-    const trimmedQuery = query.toLowerCase().trim();
-    console.log(`performSearch called with query: "${trimmedQuery}"`);
-    if (trimmedQuery.length === 0) {
-        document.getElementById('results-container').style.display = 'none';
-        return;
-    }
-    fetch(`/search?q=${encodeURIComponent(trimmedQuery)}`)
-        .then(res => res.json())
-        .then(data => {
-            const characterName = data.character || 'ERROR'; 
-            console.log(`Best character match: "${characterName}"`);
-            displayCharacterResults(characterName, trimmedQuery)
-           ;
-        })
-        .catch(err => {
-            console.log(`Error during search for "${characterName}":`, err);
-            displayCharacterResults('ERROR', trimmedQuery); 
-        });
-}
+        function performSearch(query) {
+            const trimmedQuery = query.toLowerCase().trim();
+            console.log(`performSearch called with query: "${trimmedQuery}"`);
+            if (trimmedQuery.length === 0) {
+                document.getElementById('results-container').style.display = 'none';
+                return;
+            }
+            fetch(`/search?q=${encodeURIComponent(trimmedQuery)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const characterName = data.character || 'ERROR';
+                    console.log(`Best character match: "${characterName}"`);
+                    displayCharacterResults(characterName, trimmedQuery)
+                        ;
+                })
+                .catch(err => {
+                    console.log(`Error during search for "${characterName}":`, err);
+                    displayCharacterResults('ERROR', trimmedQuery);
+                });
+        }
 
         function displayCharacterResults(characterKey, query) {
             if (!query) {
                 query = document.getElementById('character-search-val').value.toLowerCase().trim();
             }
 
-            const character = null;
             fetch(`/csearch?q=${encodeURIComponent(characterKey)}`)
                 .then(res => res.json())
                 .then(data => {
                     console.log(`Received character data for ${characterKey}:`, data);
-                    character = data;
+                    const character = data;
+                    console.log(`Displaying results for ${character.name} (${characterKey}) based on query: "${query}"`);
+
+                    // Show the results container
+                    const resultsContainer = document.getElementById('results-container');
+                    if (!resultsContainer) {
+                        console.error('results-container not found');
+                        return;
+                    }
+                    resultsContainer.style.display = 'block';
+
+                    // Update hero section - with safety checks
+                    const heroName = document.getElementById('hero-name');
+                    const heroRank = document.getElementById('hero-rank');
+                    const heroSummary = document.getElementById('hero-summary');
+
+                    if (heroName) heroName.textContent = character.name;
+                    if (heroRank) heroRank.textContent = character.rank;
+                    if (heroSummary) heroSummary.textContent = character.summary;
+
+                    // Update stats grid
+                    const gridRating = document.getElementById('grid-rating');
+                    const gridSentiment = document.getElementById('grid-sentiment');
+                    const gridComments = document.getElementById('grid-comments');
+
+                    if (gridRating) gridRating.textContent = character.currentRating.toFixed(1);
+                    if (gridSentiment) gridSentiment.textContent = character.sentiment;
+
+                    const commentsShort = character.totalComments >= 1000
+                        ? (character.totalComments / 1000).toFixed(1) + 'K'
+                        : character.totalComments;
+                    if (gridComments) gridComments.textContent = commentsShort;
+
+                    // Update query context (show what was searched)
+                    const queryTerm = document.getElementById('query-term');
+                    const retrievedCount = document.getElementById('retrieved-count');
+
+                    if (queryTerm) queryTerm.textContent = query;
+                    if (retrievedCount) retrievedCount.textContent = character.retrieved.length;
+
+                    // Update chart
+                    updateChart(character, query);
+
+                    // Update retrieved documents
+                    updateRetrieved(character);
+
+                    // Scroll to results
+                    document.getElementById('results-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 })
                 .catch(err => {
                     console.error(`Failed to fetch character data for ${characterKey}:`, err);
                     alert('Sorry, something went wrong while fetching character data. Please try again.');
                 });
-            console.log(`Displaying results for ${character.name} (${characterKey}) based on query: "${query}"`);
-
-            // Show the results container
-            const resultsContainer = document.getElementById('results-container');
-            if (!resultsContainer) {
-                console.error('results-container not found');
-                return;
-            }
-            resultsContainer.style.display = 'block';
-
-            // Update hero section - with safety checks
-            const heroName = document.getElementById('hero-name');
-            const heroRank = document.getElementById('hero-rank');
-            const heroSummary = document.getElementById('hero-summary');
-
-            if (heroName) heroName.textContent = character.name;
-            if (heroRank) heroRank.textContent = character.rank;
-            if (heroSummary) heroSummary.textContent = character.summary;
-
-            // Update stats grid
-            const gridRating = document.getElementById('grid-rating');
-            const gridSentiment = document.getElementById('grid-sentiment');
-            const gridComments = document.getElementById('grid-comments');
-
-            if (gridRating) gridRating.textContent = character.currentRating.toFixed(1);
-            if (gridSentiment) gridSentiment.textContent = character.sentiment;
-
-            const commentsShort = character.totalComments >= 1000
-                ? (character.totalComments / 1000).toFixed(1) + 'K'
-                : character.totalComments;
-            if (gridComments) gridComments.textContent = commentsShort;
-
-            // Update query context (show what was searched)
-            const queryTerm = document.getElementById('query-term');
-            const retrievedCount = document.getElementById('retrieved-count');
-
-            if (queryTerm) queryTerm.textContent = query;
-            if (retrievedCount) retrievedCount.textContent = character.retrieved.length;
-
-            // Update chart
-            updateChart(character, query);
-
-            // Update retrieved documents
-            updateRetrieved(character);
-
-            // Scroll to results
-            document.getElementById('results-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function updateChart(character, query) {
@@ -318,12 +317,12 @@ function performSearch(query) {
                 }
 
                 const ratingData = character.ratings_over_time.map(d => ({
-                    date: new Date(d[0] * 1000), 
+                    date: new Date(d[0] * 1000),
                     rating: d[1],
                     sentiment: d[2]
-                }));                
+                }));
                 console.log(`Creating chart for ${character.name} with ${ratingData.length} data points`);
-                
+
                 chartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
