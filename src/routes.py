@@ -22,6 +22,7 @@ characters = data["characters"]
 
 character_data = joblib.load("data/character_data.pkl")
 
+# calculates similarity between query and character docs, returns best match's name
 def query_character(query):
     query_vec = vectorizer.transform([query])
     sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
@@ -72,7 +73,7 @@ def register_routes(app):
         
         result = query_character(query)
         
-        print(result)
+        print(f"Received search query: '{query}' -> matched character: '{result}'")
         return json.dumps({
             "character": result
         })
@@ -84,7 +85,7 @@ def register_routes(app):
             return json.dumps({})
         if name in character_data.keys():
             print(f"Exact match found for {name}")
-            print(json.dumps(character_data[name]))
+            # print(json.dumps(character_data[name]))
             return json.dumps(character_data[name])
         print(f"{name} is not a character name")
 
