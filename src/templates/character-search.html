@@ -217,122 +217,25 @@
             }
         }
 
-function performSearch(query) {
-    const trimmedQuery = query.toLowerCase().trim();
-    console.log(`performSearch called with query: "${trimmedQuery}"`);
-
-    if (trimmedQuery.length === 0) {
-        document.getElementById('results-container').style.display = 'none';
-        return;
-    }
-
-    let characterKey = null;
-
-    // fetch from Flask backend
-    fetch(`/search?q=${encodeURIComponent(trimmedQuery)}`)
-        .then(res => res.json())
-        .then(data => {
-            // data.character should be the best match
-            characterKey = data.character ? data.character : 'luffy'; // default
-            console.log(`Best character match: "${characterKey}"`);
-
-            displayCharacterResults(characterKey, trimmedQuery);
-        })
-        .catch(err => {
-            console.error('Search failed:', err);
-            // fallback default
-            characterKey = 'luffy';
-            displayCharacterResults(characterKey, trimmedQuery);
-        });
-}
-     function displayResultsFromBackend(data, query) {
-            const resultsContainer = document.getElementById('results-container');
-            resultsContainer.style.display = 'block';
-
-            document.getElementById('hero-name').textContent = data.name;
-            document.getElementById('hero-summary').textContent = data.summary || `Results for "${query}" based on community discussion.`;
-            document.getElementById('hero-rank').textContent = data.rating > 8 ? 'GOAT' : data.rating > 6 ? 'S' : 'A';
-
-            document.getElementById('grid-rating').textContent = data.rating.toFixed ? data.rating.toFixed(1) : data.rating;
-            document.getElementById('grid-sentiment').textContent = data.consensus || (data.rating > 8 ? 'Very Positive' : data.rating > 6 ? 'Positive' : 'Neutral');
-            document.getElementById('grid-comments').textContent = data.mentions || data.retrieved.length;
-
-            document.getElementById('query-term').textContent = query;
-            document.getElementById('retrieved-count').textContent = data.retrieved.length;
-
-            updateRetrievedFromBackend(data.retrieved);
-            updateChartFromBackend(data.trend, data.trend_dates, query);
-
-            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        function updateRetrievedFromBackend(retrieved) {
-            const retrievedContainer = document.getElementById('retrieved-container');
-            retrievedContainer.innerHTML = '';
-
-            retrieved.forEach((item, index) => {
-                const commentEl = document.createElement('div');
-                commentEl.className = 'retrieved-comment positive'; // assume positive
-                commentEl.innerHTML = `
-                    <div class="retrieved-header">
-                        <span class="retrieved-user">@User${index + 1}</span>
-                        <span class="retrieved-meta">Score: ${(item.score * 100).toFixed(0)}%</span>
-                    </div>
-                    <p class="retrieved-text">${item.text}</p>
-                    <div class="retrieved-footer">
-                        <span class="relevance-score">Relevance: ${(item.score * 100).toFixed(0)}%</span>
-                        <span class="controversy-level">ID: ${item.id}</span>
-                    </div>
-                `;
-                retrievedContainer.appendChild(commentEl);
-            });
-        }
-
-        function updateChartFromBackend(trendValues, trendDates, query) {
-            try {
-                const chartCanvas = document.getElementById('ratingsChart');
-                if (!chartCanvas) {
-                    console.error('Chart canvas not found');
-                    return;
-                }
-
-                const ctx = chartCanvas.getContext('2d');
-
-                if (chartInstance) {
-                    chartInstance.destroy();
-                }
-
-                const labels = trendDates || trendValues.map((v, idx) => `T${idx + 1}`);
-
-                chartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Star rating for "' + query + '"',
-                            data: trendValues,
-                            borderColor: '#4285F4',
-                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            pointBackgroundColor: '#4285F4',
-                            pointBorderColor: '#fff',
-                            pointRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { min: 0, max: 10 },
-                            x: { ticks: { display: true } }
-                        }
-                    }
-                });
-
-            } catch (error) {
-                console.error('Error updating backend chart:', error);
+        function performSearch(query) {
+            const trimmedQuery = query.toLowerCase().trim();
+            console.log(`performSearch called with query: "${trimmedQuery}"`);
+            if (trimmedQuery.length === 0) {
+                document.getElementById('results-container').style.display = 'none';
+                return;
             }
+            fetch(`/search?q=${encodeURIComponent(trimmedQuery)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const characterName = data.character || 'ERROR';
+                    console.log(`Best character match: "${characterName}"`);
+                    displayCharacterResults(characterName, trimmedQuery)
+                        ;
+                })
+                .catch(err => {
+                    console.log(`Error during search for "${characterName}":`, err);
+                    displayCharacterResults('ERROR', trimmedQuery);
+                });
         }
 
         function displayCharacterResults(characterKey, query) {
@@ -340,54 +243,69 @@ function performSearch(query) {
                 query = document.getElementById('character-search-val').value.toLowerCase().trim();
             }
 
-            const character = mockCharacterData[characterKey];
-            console.log(`Displaying results for ${character.name} (${characterKey}) based on query: "${query}"`);
+            fetch(`/csearch?q=${encodeURIComponent(characterKey)}`)
+                .then(res => res.json())
+                .then(data => {
+                    console.log(`Received character data for ${characterKey}:`, data);
+                    const character = data;
+                    console.log(`Displaying results for ${character.name} (${characterKey}) based on query: "${query}"`);
 
-            // Show the results container
-            const resultsContainer = document.getElementById('results-container');
-            if (!resultsContainer) {
-                console.error('results-container not found');
-                return;
-            }
-            resultsContainer.style.display = 'block';
+                    // Show the results container
+                    const resultsContainer = document.getElementById('results-container');
+                    if (!resultsContainer) {
+                        console.error('results-container not found');
+                        return;
+                    }
+                    resultsContainer.style.display = 'block';
 
-            // Update hero section - with safety checks
-            const heroName = document.getElementById('hero-name');
-            const heroRank = document.getElementById('hero-rank');
-            const heroSummary = document.getElementById('hero-summary');
+                    // Update hero section - with safety checks
+                    const heroName = document.getElementById('hero-name');
+                    const heroRank = document.getElementById('hero-rank');
+                    const heroSummary = document.getElementById('hero-summary');
 
-            if (heroName) heroName.textContent = character.name;
-            if (heroRank) heroRank.textContent = character.rank;
-            if (heroSummary) heroSummary.textContent = character.summary;
+                    if (heroName) heroName.textContent = characterKey
+                    if (heroRank) heroRank.textContent = character.rank;
+                    if (heroSummary) heroSummary.textContent = character.summary;
 
-            // Update stats grid
-            const gridRating = document.getElementById('grid-rating');
-            const gridSentiment = document.getElementById('grid-sentiment');
-            const gridComments = document.getElementById('grid-comments');
+                    // Update stats grid
+                    const gridRating = document.getElementById('grid-rating');
+                    const gridSentiment = document.getElementById('grid-sentiment');
+                    const gridComments = document.getElementById('grid-comments');
 
-            if (gridRating) gridRating.textContent = character.currentRating.toFixed(1);
-            if (gridSentiment) gridSentiment.textContent = character.sentiment;
+                    if (gridRating) gridRating.textContent = character.currentRating.toFixed(1);
+                    if (gridSentiment) gridSentiment.textContent = character.sentiment;
 
-            const commentsShort = character.totalComments >= 1000
-                ? (character.totalComments / 1000).toFixed(1) + 'K'
-                : character.totalComments;
-            if (gridComments) gridComments.textContent = commentsShort;
+                    const commentsShort = character.total_comments >= 1000
+                        ? (character.total_comments / 1000).toFixed(1) + 'K'
+                        : character.total_comments;
+                        console.log(`Total comments for ${character.name}: ${character.total_comments}`);
+                    if (!character.total_comments){
+                        gridComments.textContent = 'shits scuffed chief';
+                    }
+                    else{
+                        gridComments.textContent = commentsShort
+                    }
 
-            // Update query context (show what was searched)
-            const queryTerm = document.getElementById('query-term');
-            const retrievedCount = document.getElementById('retrieved-count');
+                    // Update query context (show what was searched)
+                    const queryTerm = document.getElementById('query-term');
+                    const retrievedCount = document.getElementById('retrieved-count');
 
-            if (queryTerm) queryTerm.textContent = query;
-            if (retrievedCount) retrievedCount.textContent = character.retrieved.length;
+                    if (queryTerm) queryTerm.textContent = query;
+                    if (retrievedCount) retrievedCount.textContent = character.retrieved.length;
 
-            // Update chart
-            updateChart(character, query);
+                    // Update chart
+                    updateChart(character, query);
 
-            // Update retrieved documents
-            updateRetrieved(character);
+                    // Update retrieved documents
+                    updateRetrieved(character);
 
-            // Scroll to results
-            document.getElementById('results-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    // Scroll to results
+                    document.getElementById('results-container').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                })
+                .catch(err => {
+                    console.error(`Failed to fetch character data for ${characterKey}:`, err);
+                    alert('Sorry, something went wrong while fetching character data. Please try again.');
+                });
         }
 
         function updateChart(character, query) {
@@ -404,13 +322,19 @@ function performSearch(query) {
                     chartInstance.destroy();
                 }
 
-                const ratingData = character.ratings_over_time;
+                const ratingData = character.ratings_over_time.map(d => ({
+                    date: new Date(d.date * 1000),
+                    rating: d.rating,
+                    sentiment: d.sentiment
+                }));
+                const maxRating = Math.max(...ratingData.map(d => d.rating)); // finds max rating to determine
+                // y-axis scale
                 console.log(`Creating chart for ${character.name} with ${ratingData.length} data points`);
 
                 chartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: ratingData.map(d => d.date),
+                        labels: ratingData.map(d => d.date.toLocaleDateString()),
                         datasets: [{
                             label: character.name + ' Rating',
                             data: ratingData.map(d => d.rating),
@@ -441,8 +365,8 @@ function performSearch(query) {
                         scales: {
                             y: {
                                 beginAtZero: false,
-                                min: 6,
-                                max: 10,
+                                min: 0,
+                                max: maxRating + 10,
                                 ticks: {
                                     font: { size: 12 }
                                 }

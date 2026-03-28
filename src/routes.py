@@ -8,7 +8,7 @@ from flask import render_template, request
 from models import db, Episode, Review
 import joblib
 from sklearn.metrics.pairwise import cosine_similarity
-
+from language_processing import similarity_calc
 
 # ── AI toggle ──
 USE_LLM = False
@@ -20,6 +20,12 @@ tfidf_matrix = data["matrix"]
 vectorizer = data["vectorizer"]
 characters = data["characters"]
 
+character_data = joblib.load("data/character_data.pkl")
+
+def query_character(query):
+    query_vec = vectorizer.transform([query])
+    sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
+    return characters[sims.argmax()]
 def json_search(query):
     if not query or not query.strip():
         query = "Luffy"
@@ -92,6 +98,20 @@ def register_routes(app):
         return json.dumps({
             "character": result
         })
+    @app.route("/csearch")
+    def csearch():
+        name = request.args.get("q", "")
+        print(f"Received Csearch query: '{name}'")
+        if not name:
+            return json.dumps({})
+        if name in character_data.keys():
+            print(f"Exact match found for {name}")
+            print(json.dumps(character_data[name]))
+            return json.dumps(character_data[name])
+        print(f"{name} is not a character name")
+
+    # fallback (nothing found)
+        return json.dumps({})
 
     if USE_LLM:
         from llm_routes import register_chat_route

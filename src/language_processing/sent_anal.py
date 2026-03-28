@@ -16,4 +16,7 @@ def get_sentiment(text):
         return "negative"
     else:
         return "neutral"
-    
+
+"""print(get_sentiment("I love this game!")) # positive
+print(get_sentiment("This game is terrible.")) # negative
+print(get_sentiment("This game is okay.")) # neutral"""
