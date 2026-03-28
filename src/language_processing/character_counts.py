@@ -475,6 +475,26 @@ def create_alias_to_canonical_dict(names_and_variants: dict[str, list[str]]) -> 
     return alias_to_canonical
 
 
+# fuzzy match query against all character names and aliases, return canonical name
+# to be used in routes.py
+def fuzzy_match_character(query: str, names_and_variants: dict[str, list[str]], threshold=100) -> str:
+    best_match = None
+    best_distance = float('inf')
+    query_lower = query.lower()
+    
+    for char, aliases in names_and_variants.items():
+        all_names = [char] + aliases
+        for name in all_names:
+            distance = Levenshtein.distance(query_lower, name.lower())
+            if distance < best_distance:
+                best_distance = distance
+                best_match = char
+
+    if best_distance <= threshold:
+        return best_match
+    return ""
+
+
 
 # UNFINISHED
 # create inverted index mapping character names to comment ids where they (or some alias) are mentioned
@@ -498,7 +518,7 @@ def create_reverse_postings_alias(filename="reverse_postings.csv"):
         matched_chars = set()
         for word in words:
             for name_lower, canonical in alias_to_canonical_map.items():
-                if fuzzy_edit_distance(name_lower, word) <= 2:
+                if fuzzy_edit_distance(name_lower, word, threshold=0):
                     matched_chars.add(canonical)
         for char in matched_chars:
             reverse_postings[char].append(comment_id)
@@ -537,11 +557,11 @@ def write_reverse_postings_alias_to_csv(reverse_postings, filename="reverse_post
 
 
 
-
+"""
 reverse_postings_alias = create_reverse_postings_alias()
 print(reverse_postings_alias)
-write_reverse_postings_alias_to_csv(reverse_postings_alias, "reverse_postings_alias.csv")
-
+write_reverse_postings_alias_to_csv(reverse_postings_alias, "reverse_postings_alias_exact.csv")
+"""
     
     
 

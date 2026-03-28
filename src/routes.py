@@ -9,6 +9,7 @@ from models import db, Episode, Review
 import joblib
 from sklearn.metrics.pairwise import cosine_similarity
 from language_processing import similarity_calc
+from language_processing import character_counts
 
 # ── AI toggle ──
 USE_LLM = False
@@ -27,6 +28,7 @@ def query_character(query):
     query_vec = vectorizer.transform([query])
     sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
     return characters[sims.argmax()]
+
 
 
 
@@ -71,7 +73,8 @@ def register_routes(app):
         if not query.strip():
             return json.dumps({"error": "empty query"})
         
-        result = query_character(query)
+        # result = query_character(query)
+        result = character_counts.fuzzy_match_character(query, character_counts.names_and_variants)
         
         print(f"Received search query: '{query}' -> matched character: '{result}'")
         return json.dumps({

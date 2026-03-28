@@ -15,6 +15,7 @@ from datetime import datetime
 #JW function for returning keyword for a given query. multiword
 # queries will be treated as a vecotr to compare against character name vecotrs.
 rp = pd.read_csv("src/language_processing/reverse_postings.csv") # inverted index mapping characters to comment ids
+rp = pd.read_csv("reverse_postings_alias_exact.csv") # trying out alias-accounting reverse_postings
 pfc = pd.read_csv("data/piratefolk_comments.csv") # comments with ids and text
 
 name_variants = {
@@ -354,7 +355,7 @@ def make_pickle():
     "characters": characters
 }, "data/model.pkl")
     
-# make_pickle()
+make_pickle()
 
 """print("below is case sensitive teest")
 print(get_comments_by_character("Kuro") == get_comments_by_character("kuro"))
