@@ -8,7 +8,7 @@ python-dotenv
 git+https://github.com/MrPeterss/infosci-spark-client.git
 nltk
 pandas
-sklearn
+scikit-learn
 spacy
 numpy
 joblib
