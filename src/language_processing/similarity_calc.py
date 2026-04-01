@@ -18,6 +18,9 @@ rp = pd.read_csv("src/language_processing/reverse_postings.csv") # inverted inde
 rp = pd.read_csv("reverse_postings_alias_exact.csv") # trying out alias-accounting reverse_postings
 pfc = pd.read_csv("data/piratefolk_comments.csv") # comments with ids and text
 
+# dict mapping character name to list of aliases (translations, canon nicknames, etc.)
+# aliases gathered from the one piece wiki
+# does not cover cases of reddit-given nicknames
 name_variants = {
     # Straw Hat Pirates
     "Monkey D. Luffy": ["Luffy", "Monkey D. Rufi", "Rufi", "Ruffy", "Monch D. Roof"],
@@ -307,7 +310,7 @@ name_variants = {
 
 # input: character name
 # output: list of comment ids that mention that character
-def get_comments_by_character(character):
+def get_comments_by_character(character: str) -> list[str]:
     row = rp[rp["character"] == character]
     if row.empty:
         return []
@@ -319,15 +322,23 @@ def get_comments_by_character(character):
     
     return comments
 
-
-def build_character_docs():
+# outputs a dict that maps each character name to a string concatenating all comments
+# that mention that character.
+def build_character_docs() -> dict[str, str]:
     character_docs = {}
     for character in rp["character"]:
         comments = get_comments_by_character(character)
         character_docs[character] = " ".join(comments)
     return character_docs
 
-def create_character_tfidf(character_docs):
+# input dict mapping character names to the concatenation of comments mentioning that name
+# output:
+#        - list of characer names
+#        - tfidf vectorizer
+#        - tfidf matrix:
+#                - rows correspond to characters
+#                - columns correspond to terms
+def create_character_tfidf(character_docs: dict[str, str]) -> tuple[list[str], TfidfVectorizer, sparse.csr_matrix]:
     characters = list(character_docs.keys())
     docs = list(character_docs.values())
 
@@ -339,7 +350,14 @@ def create_character_tfidf(character_docs):
 character_docs = build_character_docs()
 characters, vectorizer, tfidf_matrix = create_character_tfidf(character_docs)
 
-def query_character(query, vectorizer, tfidf_matrix, characters, top_k=1):
+# input:
+#       - query string
+#       - tfidf vectorizer
+#       - tfidf matrix
+#       - list of character names corresponding to rows of tfidf matrix
+# output: charater name with highest cosine sim to query
+#       - if query is an exact match for a character name, then just return that name
+def query_character(query: str, vectorizer: TfidfVectorizer, tfidf_matrix: sparse.csr_matrix, characters: list[str], top_k: int = 1) -> str:
     query_vec = vectorizer.transform([query])
     sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
     best_index = sims.argmax()
