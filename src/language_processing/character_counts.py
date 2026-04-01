@@ -7,7 +7,9 @@ from collections import defaultdict
 from rapidfuzz.distance import Levenshtein # REMIDNER TO ADD RAPIDFUZZ TO PIPINSTALL REQUIREMENTS
 
 
-# dictionary mapping names to list of aliases
+# dict mapping character name to list of aliases (translations, canon nicknames, etc.)
+# aliases gathered from the one piece wiki
+# does not cover cases of reddit-given nicknames
 names_and_variants = {
     # Straw Hat Pirates
     "Monkey D. Luffy": ["Luffy", "Monkey D. Rufi", "Rufi", "Ruffy", "Monch D. Roof"],
@@ -355,13 +357,27 @@ def write_counts_to_csv(filename="character_counts.csv"):
 
 
 
+# fuzzy match query against all character names and aliases, return canonical name
+# intending to be used in routes.py
+def fuzzy_match_character(query: str, names_and_variants: dict[str, list[str]], threshold=100) -> str:
+    best_match = None
+    best_distance = float('inf')
+    query_lower = query.lower()
+    
+    for char, aliases in names_and_variants.items():
+        all_names = [char] + aliases
+        for name in all_names:
+            distance = Levenshtein.distance(query_lower, name.lower())
+            if distance < best_distance:
+                best_distance = distance
+                best_match = char
+
+    if best_distance <= threshold:
+        return best_match
+    return ""
 
 
 
-
-
-# calculate edit distance between two strings
-def edit_distance(source: str, target: str):
     D = np.zeros((len(source) + 1, len(target) + 1))
     for i in range(len(source) + 1):
         D[i, 0] = i
@@ -384,14 +400,16 @@ def edit_distance(source: str, target: str):
 
 
 # returns true if edit distance is less than or equal to threshold
-def fuzzy_edit_distance(source: str, target: str, threshold: int = 2):
+def fuzzy_edit_distance(source: str, target: str, threshold: int = 0):
     return Levenshtein.distance(source, target) <= threshold
     # using pre-implemented edit-distance from rapidfuzz because it ended up being like 
     # 50x times faster when running code
 
 
 
-# convert names_and_variants to csv file
+# convert names_and_variants dict to csv file
+# input: dict mapping each character name to list of aliases
+# output: csv with columns character, alias
 def aliases_to_csv(names_and_variants: dict[str, list[str]], output_path="character_aliases.csv"):
     with open(output_path, mode="w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -404,7 +422,9 @@ def aliases_to_csv(names_and_variants: dict[str, list[str]], output_path="charac
 
 
 # counts the number of times each character (or their aliases) are mentioned in the comments, returns a Counter of character counts
-def char_count_alias(names_and_variants: dict[str, list[str]]) -> list[str, list[str]]:
+# input: dict mapping character name to list of aliases
+# output: Counter object mapping character name to count of mentions (including aliases)
+def char_count_alias(names_and_variants: dict[str, list[str]]):
     char_counts = Counter()
     for comment in nlp.pipe(comments, batch_size=1000):
         for word in comment.text.split():
@@ -415,7 +435,7 @@ def char_count_alias(names_and_variants: dict[str, list[str]]) -> list[str, list
 
 
 
-def write_reverse_postings_to_csv(filename="reverse_postings_alias.csv"):
+def write_reverse_postings_to_csv(filename="src/language_processing/csv/reverse_postings_alias.csv"):
     reverse_postings = createReversePostings()
     
     # Convert to DataFrame
@@ -432,40 +452,11 @@ def write_reverse_postings_to_csv(filename="reverse_postings_alias.csv"):
 
 
 
-# helper function for match_comments_to_char
-# add comment_id to reverse_postings for any character whose name or alias matches a word in the comment
-def match_words_to_char(char, comment, comment_id, reverse_postings, aliases) -> bool:
-    all_aliases = [char] + aliases  # list of aliases including OG name
-    # normalize comment words for token-level comparison
-    comment_text = comment.text if hasattr(comment, "text") else ""
-    words = [w.strip() for w in comment_text.lower().split() if w.strip()]
-
-    matched = False
-    for name in all_aliases:
-        name_lower = name.lower()
-        for word in words:
-            if fuzzy_edit_distance(name_lower, word.lower()):
-                # store under official character key (char), rather than alias key
-                if comment_id not in reverse_postings[char]:
-                    reverse_postings[char].append(comment_id)
-                matched = True
-                break
-
-    return matched
 
 
-
-# helper for create-reverse_postings_alias
-# loop through comments...
-def match_comments_to_char(char, aliases, reverse_postings, texts, ids) -> None:
-    for comment, comment_id in zip(nlp.pipe(texts, batch_size = 1000), ids):
-        match_words_to_char(char, comment, comment_id, reverse_postings, aliases)
-    return
-
-
-
-# helper for create_reverse_postings_alias
-# makes a dict: alias -> canon_name
+# (helper for create_reverse_postings_alias)
+# input: dict mapping character name to list of aliases
+# output: dict mapping alias to canonical character name (including mapping canonical name to itself)
 def create_alias_to_canonical_dict(names_and_variants: dict[str, list[str]]) -> dict[str, str]:
     alias_to_canonical = {}
     for char, aliases in names_and_variants.items():
@@ -475,28 +466,18 @@ def create_alias_to_canonical_dict(names_and_variants: dict[str, list[str]]) -> 
     return alias_to_canonical
 
 
-# fuzzy match query against all character names and aliases, return canonical name
-# to be used in routes.py
-def fuzzy_match_character(query: str, names_and_variants: dict[str, list[str]], threshold=100) -> str:
-    best_match = None
-    best_distance = float('inf')
-    query_lower = query.lower()
-    
-    for char, aliases in names_and_variants.items():
-        all_names = [char] + aliases
-        for name in all_names:
-            distance = Levenshtein.distance(query_lower, name.lower())
-            if distance < best_distance:
-                best_distance = distance
-                best_match = char
 
-    if best_distance <= threshold:
-        return best_match
-    return ""
+# to store alias -> canoncial name mapping
+def alias_to_canonical_dict_to_csv(alias_to_canonical: dict[str, str], output_path="src/language_processing/csv/alias_to_canonical.csv"):
+    with open(output_path, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["alias", "canonical"])
+        for alias, canonical in alias_to_canonical.items():
+            writer.writerow([alias, canonical])
 
 
 
-# UNFINISHED
+# UNFINISHED?
 # create inverted index mapping character names to comment ids where they (or some alias) are mentioned
 # returns dict[str, list[str]]
 def create_reverse_postings_alias(filename="reverse_postings.csv"):
@@ -545,29 +526,8 @@ def write_reverse_postings_alias_to_csv(reverse_postings, filename="reverse_post
 
 
 
-
 # RUNNING FUNCTIONS --------------------------------------------------------------------------------------------------------
 
-# write_reverse_postings_to_csv()
-# write_counts_to_csv()
 
-# char_count = charCount()
-# write_char_counts_to_csv(char_count, "data/character_names.csv")
-# createReversePostings()
-
-
-
-"""
-reverse_postings_alias = create_reverse_postings_alias()
-print(reverse_postings_alias)
-write_reverse_postings_alias_to_csv(reverse_postings_alias, "reverse_postings_alias_exact.csv")
-"""
-    
-    
-
-
-# aliases_to_csv(names_and_variants)
-# counts = char_count_alias(names_and_variants)
-# write_char_counts_to_csv(counts, "character_counts.csv")
 
 
