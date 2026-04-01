@@ -1,8 +1,6 @@
 # file for similarity calculations and similar helper functions
 import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -374,11 +372,14 @@ def make_pickle():
     
 make_pickle()
 
-"""print("below is case sensitive teest")
-print(get_comments_by_character("Kuro") == get_comments_by_character("kuro"))
-print("below is the query test")
-print(query_character("Akainu", vectorizer, tfidf_matrix, characters))
-print("enies lobby?")
-print([c for c in get_comments_by_character("akainu") if "him" in c.lower()])"""
+
+
+# TESTS ----------------------------------------------------------------------------------------
+# print("below is case sensitive teest")
+# print(get_comments_by_character("Kuro") == get_comments_by_character("kuro"))
+# print("below is the query test")
+# print(query_character("Akainu", vectorizer, tfidf_matrix, characters))
+# print("enies lobby?")
+# print([c for c in get_comments_by_character("akainu") if "him" in c.lower()])
 
 

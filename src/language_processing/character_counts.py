@@ -6,6 +6,7 @@ import csv
 from collections import defaultdict
 from rapidfuzz.distance import Levenshtein # REMIDNER TO ADD RAPIDFUZZ TO PIPINSTALL REQUIREMENTS
 
+# DATA --------------------------------------------------------------------------------------
 
 # dict mapping character name to list of aliases (translations, canon nicknames, etc.)
 # aliases gathered from the one piece wiki
@@ -303,6 +304,15 @@ nlp = spacy.load("en_core_web_sm")
 docs = pd.read_csv("data/piratefolk_comments.csv")
 comments = docs["text"].dropna().tolist()
 
+
+
+
+
+
+
+
+# FUNCTIONS ---------------------------------------------------------------------------------------
+
 # will deprecate... going with manual list of characters/aliases instead of NER
 def charCount():
     character_counts = Counter()
@@ -410,7 +420,7 @@ def fuzzy_edit_distance(source: str, target: str, threshold: int = 0):
 # convert names_and_variants dict to csv file
 # input: dict mapping each character name to list of aliases
 # output: csv with columns character, alias
-def aliases_to_csv(names_and_variants: dict[str, list[str]], output_path="character_aliases.csv"):
+def aliases_to_csv(names_and_variants: dict[str, list[str]], output_path="src/language_processing/csv/character_aliases.csv"):
     with open(output_path, mode="w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["character", "alias"])
@@ -452,8 +462,6 @@ def write_reverse_postings_to_csv(filename="src/language_processing/csv/reverse_
 
 
 
-
-
 # (helper for create_reverse_postings_alias)
 # input: dict mapping character name to list of aliases
 # output: dict mapping alias to canonical character name (including mapping canonical name to itself)
@@ -480,7 +488,7 @@ def alias_to_canonical_dict_to_csv(alias_to_canonical: dict[str, str], output_pa
 # UNFINISHED?
 # create inverted index mapping character names to comment ids where they (or some alias) are mentioned
 # returns dict[str, list[str]]
-def create_reverse_postings_alias(filename="reverse_postings.csv"):
+def create_reverse_postings_alias(filename="src/language_processing/csv/reverse_postings_alias.csv"):
     reverse_postings = defaultdict(list)
     texts = docs["text"].fillna("").astype(str)
     ids = docs["id"]
@@ -509,7 +517,7 @@ def create_reverse_postings_alias(filename="reverse_postings.csv"):
     return reverse_postings
 
 
-def write_reverse_postings_alias_to_csv(reverse_postings, filename="reverse_postings_alias.csv"):
+def write_reverse_postings_alias_to_csv(reverse_postings, filename="src/language_processing/csv/reverse_postings_alias.csv"):
     # Convert to DataFrame
     df = pd.DataFrame(
         [(person, ids) for person, ids in reverse_postings.items()],
@@ -527,6 +535,32 @@ def write_reverse_postings_alias_to_csv(reverse_postings, filename="reverse_post
 
 
 # RUNNING FUNCTIONS --------------------------------------------------------------------------------------------------------
+
+char_to_count = char_count_alias(names_and_variants)
+    # maps character name to # mentions (including aliases)
+
+write_char_counts_to_csv(char_to_count, filename="src/language_processing/csv/character_counts_alias.csv")
+    # writes above dict to csv
+
+aliases_to_csv(names_and_variants, filename="src/language_processing/csv/name_to_aliases.csv")
+    # creates csv mapping character to alias
+
+
+
+reverse_postings_alias = create_reverse_postings_alias()
+    # dict mapping character name to list of comment ids where character (or some alias) is mentioned
+
+write_reverse_postings_alias_to_csv(reverse_postings_alias, filename="src/language_processing/csv/reverse_postings_alias.csv")
+    # writes above dict to csv
+
+
+
+alias_to_canonical = create_alias_to_canonical_dict(names_and_variants)
+    # dict mapping alias to canonical character name (including mapping canonical name to itself)
+
+alias_to_canonical_dict_to_csv(alias_to_canonical, output_path="src/language_processing/csv/alias_to_canonical.csv")
+    # writes above dict to csv
+
 
 
 
