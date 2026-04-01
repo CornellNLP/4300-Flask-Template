@@ -14,8 +14,7 @@ from datetime import datetime
 
 #JW function for returning keyword for a given query. multiword
 # queries will be treated as a vecotr to compare against character name vecotrs.
-rp = pd.read_csv("src/language_processing/reverse_postings.csv") # inverted index mapping characters to comment ids
-rp = pd.read_csv("reverse_postings_alias_exact.csv") # trying out alias-accounting reverse_postings
+rp = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv") # trying out alias-accounting reverse_postings
 pfc = pd.read_csv("data/piratefolk_comments.csv") # comments with ids and text
 
 # dict mapping character name to list of aliases (translations, canon nicknames, etc.)
@@ -331,14 +330,14 @@ def build_character_docs() -> dict[str, str]:
         character_docs[character] = " ".join(comments)
     return character_docs
 
-# input dict mapping character names to the concatenation of comments mentioning that name
+# input: dict mapping character names to the concatenation of comments mentioning that name
 # output:
 #        - list of characer names
 #        - tfidf vectorizer
 #        - tfidf matrix:
 #                - rows correspond to characters
 #                - columns correspond to terms
-def create_character_tfidf(character_docs: dict[str, str]) -> tuple[list[str], TfidfVectorizer, sparse.csr_matrix]:
+def create_character_tfidf(character_docs: dict[str, str]):
     characters = list(character_docs.keys())
     docs = list(character_docs.values())
 
@@ -357,7 +356,7 @@ characters, vectorizer, tfidf_matrix = create_character_tfidf(character_docs)
 #       - list of character names corresponding to rows of tfidf matrix
 # output: charater name with highest cosine sim to query
 #       - if query is an exact match for a character name, then just return that name
-def query_character(query: str, vectorizer: TfidfVectorizer, tfidf_matrix: sparse.csr_matrix, characters: list[str], top_k: int = 1) -> str:
+def query_character(query: str, vectorizer: TfidfVectorizer, tfidf_matrix, characters: list[str], top_k: int = 1) -> str:
     query_vec = vectorizer.transform([query])
     sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
     best_index = sims.argmax()
