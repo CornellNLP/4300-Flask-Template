@@ -72,7 +72,15 @@ def register_routes(app):
         if not query.strip():
             return json.dumps({"error": "empty query"})
         
-        # result = query_character(query)
+
+        
+        # this line below should not be the logic going forward
+        # it takes user's query and calculates the result to be the most similar character to query.
+
+        # should replace with call to function (it's somewhere) to calculate the similarity of the query
+        # with the character "docs" and return the most similar character
+
+        # this should be easy
         result = similarity_calc.fuzzy_match_character(query, similarity_calc.name_variants)
         
         print(f"Received search query: '{query}' -> matched character: '{result}'")

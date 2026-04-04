@@ -8,8 +8,8 @@ comments_df = pd.read_csv("data/piratefolk_comments.csv")
 comments_df = comments_df.set_index("id")
 
 # postings is a csv with columns character, comment_ids (comma separated)
-postings_df = pd.read_csv("src/language_processing/reverse_postings.csv")
-postings_df = pd.read_csv("reverse_postings_alias_exact.csv")
+# postings_df = pd.read_csv("src/language_processing/reverse_postings.csv")
+postings_df = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv")
 postings_df = postings_df.drop_duplicates(subset="character")
 postings_df = postings_df.set_index("character")
 
