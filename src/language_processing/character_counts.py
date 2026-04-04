@@ -388,27 +388,6 @@ def fuzzy_match_character(query: str, names_and_variants: dict[str, list[str]], 
 
 
 
-    D = np.zeros((len(source) + 1, len(target) + 1))
-    for i in range(len(source) + 1):
-        D[i, 0] = i
-    for j in range(len(target) + 1):
-        D[0, j] = j
-    D[0,0] = 0
-
-    for i in range(1, len(source) + 1):
-        for j in range(1, len(target) + 1):
-            deletion = D[i-1, j] + 1
-            insertion = D[i, j-1] + 1
-
-            if target[j - 1] == source[i - 1]:
-                substitution = D[i-1, j-1] + 0
-            else: 
-                substitution = D[i-1,j-1] + 2
-            D[i,j] = min(deletion, insertion, substitution)
-    return D[len(source), len(target)]
-
-
-
 # returns true if edit distance is less than or equal to threshold
 def fuzzy_edit_distance(source: str, target: str, threshold: int = 0):
     return Levenshtein.distance(source, target) <= threshold

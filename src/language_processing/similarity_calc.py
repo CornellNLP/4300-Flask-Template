@@ -7,6 +7,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import joblib
 from datetime import datetime
+from rapidfuzz.distance import Levenshtein # REMIDNER TO ADD RAPIDFUZZ TO PIPINSTALL REQUIREMENTS
 
 
 
@@ -304,6 +305,30 @@ name_variants = {
     "Shelly": ["Sherry"],
     "Koza": ["Kohza"],
 }
+
+
+
+# !!! function copied from character_counts.py
+# fuzzy match query against all character names and aliases, return canonical name
+# intending to be used in routes.py
+def fuzzy_match_character(query: str, names_and_variants: dict[str, list[str]], threshold=100) -> str:
+    best_match = None
+    best_distance = float('inf')
+    query_lower = query.lower()
+    
+    for char, aliases in names_and_variants.items():
+        all_names = [char] + aliases
+        for name in all_names:
+            distance = Levenshtein.distance(query_lower, name.lower())
+            if distance < best_distance:
+                best_distance = distance
+                best_match = char
+
+    if best_distance <= threshold:
+        return best_match
+    return ""
+
+
 
 # input: character name
 # output: list of comment ids that mention that character

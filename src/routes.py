@@ -9,7 +9,6 @@ from models import db, Episode, Review
 import joblib
 from sklearn.metrics.pairwise import cosine_similarity
 from language_processing import similarity_calc
-from language_processing import character_counts
 
 # ── AI toggle ──
 USE_LLM = False
@@ -74,7 +73,7 @@ def register_routes(app):
             return json.dumps({"error": "empty query"})
         
         # result = query_character(query)
-        result = character_counts.fuzzy_match_character(query, character_counts.names_and_variants)
+        result = similarity_calc.fuzzy_match_character(query, similarity_calc.name_variants)
         
         print(f"Received search query: '{query}' -> matched character: '{result}'")
         return json.dumps({
