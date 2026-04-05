@@ -30,7 +30,6 @@ def query_character(query):
 
 
 
-
 def json_search(query):
    
     # only retrieve top 10 relevant documents
@@ -48,21 +47,9 @@ def json_search(query):
 
 
 
-
-
-
 def register_routes(app):
     @app.route("/")
     def home():
-        return render_template('character-search.html')
-
-    @app.route("/episodes")
-    def episodes_search():
-        text = request.args.get("title", "")
-        return json_search(text)
-
-    @app.route("/characters")
-    def character_search():
         return render_template('character-search.html')
     
     @app.route("/search")
@@ -72,21 +59,18 @@ def register_routes(app):
         if not query.strip():
             return json.dumps({"error": "empty query"})
         
-
-        
-        # this line below should not be the logic going forward
-        # it takes user's query and calculates the result to be the most similar character to query.
-
-        # should replace with call to function (it's somewhere) to calculate the similarity of the query
-        # with the character "docs" and return the most similar character
-
-        # this should be easy
-        result = similarity_calc.fuzzy_match_character(query, similarity_calc.name_variants)
+        # calculate the similarity of the query with the character "docs" and 
+        # return the most similar character
+        result = similarity_calc.query_character(query, 
+            similarity_calc.vectorizer,
+            similarity_calc.tfidf_matrix,
+            similarity_calc.characters)
         
         print(f"Received search query: '{query}' -> matched character: '{result}'")
         return json.dumps({
             "character": result
         })
+    
     @app.route("/csearch")
     def csearch():
         name = request.args.get("q", "")
@@ -95,7 +79,6 @@ def register_routes(app):
             return json.dumps({})
         if name in character_data.keys():
             print(f"Exact match found for {name}")
-            # print(json.dumps(character_data[name]))
             return json.dumps(character_data[name])
         print(f"{name} is not a character name")
 

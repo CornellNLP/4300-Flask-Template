@@ -385,8 +385,10 @@ def query_character(query: str, vectorizer: TfidfVectorizer, tfidf_matrix, chara
     best_index = sims.argmax()
     if query in characters:
         return query
+        # TODO: should check for aliases too. also, case sensitivity?
     else:
         return characters[best_index]
+    # TODO: code doesn't use top_k yet
 
 def make_pickle():
     joblib.dump({
