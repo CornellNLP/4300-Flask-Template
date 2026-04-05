@@ -397,7 +397,69 @@ def make_pickle():
     "characters": characters
 }, "data/model.pkl")
     
-make_pickle()
+# make_pickle()
+
+
+
+
+
+
+# 2026-04-05 ADDING FUNCTIONS FROM A PREVIOUS PROTOYPE
+# in order to retrieve comments actually relevant to the query
+# rather than comments similar to character
+
+
+# helper for retrieve_k_sim_comments
+# given a csv of comment data, create a tf-idf matrix with
+#       rows: comments
+#       cols: terms
+def create_comment_term_tfidf_matrix(filepath: str):
+    df = pd.read_csv(filepath)
+
+    df["text"] = df["text"].fillna("").astype(str)
+
+    texts = df["text"].tolist() # list of comment "bodies"
+    ids = df["id"].tolist() # list of comment ids
+
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(texts)
+    return (ids, comment_term_vectorizer, comment_term_tfidf_matrix, texts)
+
+
+
+# return k most relevant documents for query
+# 	- input example: "Most useless character in Whole Cake arc"
+# 	- output: Ranked comments based off decreasing cosine similarity
+#               list of dicts, each representing a comment
+def retrieve_k_sim_comments(query, vectorizer, comment_term_tfidf_matrix, ids, texts, k):
+    query_vec = vectorizer.transform([query])
+    similarities = cosine_similarity(query_vec, comment_term_tfidf_matrix).flatten()
+        # list of cosine similarities for each comment
+
+    # get just top k indeces
+    top_indices = similarities.argsort()[::-1][:k]
+
+    rankings = []
+    for i in top_indices:
+        rankings.append({
+            "id": ids[i],
+            "score": similarities[i],
+            "text": texts[i]
+        })
+    
+    return rankings
+
+
+
+comment_ids, comment_term_vectorizer, comment_term_tfidf_matrix, texts = 
+    create_comment_term_tfidf_matrix("data/piratefolk_comments.csv")
+
+
+
+
+
+
+
 
 
 

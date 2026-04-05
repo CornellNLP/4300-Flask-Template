@@ -68,7 +68,7 @@ def register_routes(app):
         
         print(f"Received search query: '{query}' -> matched character: '{result}'")
         return json.dumps({
-            "character": result
+            "character": result # string of most similar character to query
         })
     
     @app.route("/csearch")

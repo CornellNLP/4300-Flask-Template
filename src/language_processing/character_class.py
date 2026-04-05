@@ -2,6 +2,7 @@ import pandas as pd
 import sent_anal
 from datetime import datetime
 import joblib 
+# from src.language_processing import similarity_calc
 
 # comments is a csv with columns id, timestamp, score, controversiality, text
 comments_df = pd.read_csv("data/piratefolk_comments.csv")
@@ -107,6 +108,9 @@ class Character:
 
 def create_character(name):    
     comments = postings_df.loc[name, "comment_ids"].split(",")
+        # list of comment ids mentioning [name]
+    # TODO: comments should not be precomputed and stored within the character class
+
     comment_list = []
     for comment in comments:
         comment_list.append(get_comment(comment))
