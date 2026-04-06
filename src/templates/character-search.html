@@ -88,8 +88,7 @@
                 <!-- Evidence Section -->
                 <div class="evidence-section">
                     <h3>💬 Community Evidence</h3>
-                    <p class="section-subtitle">What people are saying (<span id="retrieved-count">0</span> top
-                        comments)</p>
+                    <p class="section-subtitle">What people are saying...</p>
                     <div id="retrieved-container" class="evidence-list">
                         <!-- Retrieved comments will be populated here -->
                     </div>
@@ -454,7 +453,7 @@
                         </div>
                         <p class="retrieved-text">${comment.text}</p>
                         <div class="retrieved-footer">
-                            <span class="relevance-score">Similarity: ${(comment.sim_score)}%</span>
+                            <span class="relevance-score">Similarity: ${(comment.sim_score * 100).toFixed(0)}%</span>
                             <span class="controversy-level">Controversy: ${(comment.controversiality * 100).toFixed(0)}%</span>
                         </div>
                     `;
