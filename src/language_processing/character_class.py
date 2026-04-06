@@ -1,5 +1,5 @@
 import pandas as pd
-import sent_anal
+from language_processing import sent_anal
 from datetime import datetime
 import joblib 
 # from src.language_processing import similarity_calc
@@ -24,7 +24,7 @@ class Rating:
 
 
 class Comment:
-   def __init__(self, user, text, sentiment, rating=None, score=None, timestamp=None, controversiality=None):
+   def __init__(self, user, text, sentiment, rating=None, score=None, timestamp=None, controversiality=None, sim_score=None):
         self.user = user
         self.text = text
         self.sentiment = sentiment
@@ -32,11 +32,13 @@ class Comment:
         self.score = score
         self.timestamp = timestamp
         self.controversiality = controversiality
+        self.sim_score = sim_score
 
         # comment 
 # id,timestamp,score,controversiality,text
 
 
+# 2026-04-05 to be deprecated
 #creates comment object using comment id, will most likely be used in a loop iterating through reverse postings
 def get_comment(id):
     row = comments_df.loc[id]
@@ -58,6 +60,29 @@ def get_comment(id):
         timestamp=timestamp,
         controversiality=controversiality
     )
+
+# new version of get_comment to account for similarity score
+def create_comment(id, sim_score):
+    row = comments_df.loc[id]
+    if isinstance(row, pd.DataFrame):
+        row = row.iloc[0]
+    
+    text = str(row['text'])
+    sentiment = sent_anal.get_sentiment(text)
+    score = float(row['score'])
+    timestamp = float(row['timestamp'])
+    controversiality = int(row['controversiality'])
+
+    return Comment(
+        user='Pirate_Man23',
+        text=text,
+        sentiment=sentiment,
+        rating=0,
+        sim_score=sim_score,
+        timestamp=timestamp,
+        controversiality=controversiality
+    )
+    
 
 #uses character name to create the rating over time using character name
 def get_rating_over_time(charName):
@@ -157,6 +182,6 @@ def characters_to_dict(characters):
     return char_dict
 
 #print(create_all_characters())
-joblib.dump(characters_to_dict(create_all_characters()), "data/character_data.pkl")
+# joblib.dump(characters_to_dict(create_all_characters()), "data/character_data.pkl")
 
 

@@ -397,7 +397,7 @@ def make_pickle():
     "characters": characters
 }, "data/model.pkl")
     
-# make_pickle()
+make_pickle()
 
 
 
@@ -421,8 +421,8 @@ def create_comment_term_tfidf_matrix(filepath: str):
     texts = df["text"].tolist() # list of comment "bodies"
     ids = df["id"].tolist() # list of comment ids
 
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(texts)
+    comment_term_vectorizer = TfidfVectorizer()
+    comment_term_tfidf_matrix = comment_term_vectorizer.fit_transform(texts)
     return (ids, comment_term_vectorizer, comment_term_tfidf_matrix, texts)
 
 
@@ -441,18 +441,18 @@ def retrieve_k_sim_comments(query, vectorizer, comment_term_tfidf_matrix, ids, t
 
     rankings = []
     for i in top_indices:
-        rankings.append({
-            "id": ids[i],
-            "score": similarities[i],
-            "text": texts[i]
-        })
+        # rankings.append({
+        #     "id": ids[i],
+        #     "sim_score": similarities[i],
+        # })
+        rankings.append((ids[i], similarities[i]))
     
     return rankings
 
 
 
-comment_ids, comment_term_vectorizer, comment_term_tfidf_matrix, texts = 
-    create_comment_term_tfidf_matrix("data/piratefolk_comments.csv")
+(comment_ids, comment_term_vectorizer, comment_term_tfidf_matrix, texts) = \
+create_comment_term_tfidf_matrix("data/piratefolk_comments.csv")
 
 
 
