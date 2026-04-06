@@ -442,9 +442,9 @@
 
 
                 retrievedContainer.innerHTML = '';
-                console.log(`Clearing retrieved container and adding ${character.retrieved.length} comments`);
+                console.log(`Clearing retrieved container and adding ${retrievedComments.length} comments`);
 
-                character.retrieved.forEach((comment, index) => {
+                retrievedComments.forEach((comment, index) => {
                     const commentEl = document.createElement('div');
                     commentEl.className = `retrieved-comment ${comment.sentiment}`;
                     commentEl.innerHTML = `
