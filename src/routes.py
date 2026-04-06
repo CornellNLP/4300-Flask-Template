@@ -79,7 +79,6 @@ def register_routes(app):
             texts = similarity_calc.texts,
             k = 25
         ) # should return list of tuples of form (id, sim_score)
-        # no, should return list of dicts (each with fields "id" and "sim_score")
 
         comment_list = [] # list of relevant Comment objects, where "Comment" defined in character_class.py
         for (id, score) in relevant_comments:

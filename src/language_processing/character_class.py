@@ -34,32 +34,7 @@ class Comment:
         self.controversiality = controversiality
         self.sim_score = sim_score
 
-        # comment 
-# id,timestamp,score,controversiality,text
 
-
-# 2026-04-05 to be deprecated
-#creates comment object using comment id, will most likely be used in a loop iterating through reverse postings
-def get_comment(id):
-    row = comments_df.loc[id]
-    if isinstance(row, pd.DataFrame):
-        row = row.iloc[0]
-
-    text = str(row['text'])
-    sentiment = sent_anal.get_sentiment(text)
-    score = float(row['score'])
-    timestamp = float(row['timestamp'])
-    controversiality = int(row['controversiality'])
-
-    return Comment(
-        user='Pirate_Man22',
-        text=text,
-        sentiment=sentiment,
-        rating=4.5,
-        score=score,
-        timestamp=timestamp,
-        controversiality=controversiality
-    )
 
 # new version of get_comment to account for similarity score
 def create_comment(id, sim_score):

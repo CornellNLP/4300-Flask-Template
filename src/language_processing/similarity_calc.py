@@ -441,10 +441,6 @@ def retrieve_k_sim_comments(query, vectorizer, comment_term_tfidf_matrix, ids, t
 
     rankings = []
     for i in top_indices:
-        # rankings.append({
-        #     "id": ids[i],
-        #     "sim_score": similarities[i],
-        # })
         rankings.append((ids[i], similarities[i]))
     
     return rankings
