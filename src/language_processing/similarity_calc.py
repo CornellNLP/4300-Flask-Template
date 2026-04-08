@@ -8,13 +8,13 @@ from sklearn.metrics.pairwise import cosine_similarity
 import joblib
 from datetime import datetime
 from rapidfuzz.distance import Levenshtein # REMIDNER TO ADD RAPIDFUZZ TO PIPINSTALL REQUIREMENTS
-
+from pathlib import Path
 
 
 #JW function for returning keyword for a given query. multiword
 # queries will be treated as a vecotr to compare against character name vecotrs.
-rp = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv") # trying out alias-accounting reverse_postings
-pfc = pd.read_csv("data/piratefolk_comments.csv") # comments with ids and text
+rp = pd.read_csv(Path(__file__).parent / "csv/reverse_postings_alias_exact.csv") # trying out alias-accounting reverse_postings
+pfc = pd.read_csv(Path(__file__).parent.parent.parent / "data/piratefolk_comments.csv") # comments with ids and text
 
 # dict mapping character name to list of aliases (translations, canon nicknames, etc.)
 # aliases gathered from the one piece wiki

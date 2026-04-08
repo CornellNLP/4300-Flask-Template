@@ -9,18 +9,20 @@ from models import db, Episode, Review
 import joblib
 from sklearn.metrics.pairwise import cosine_similarity
 from language_processing import similarity_calc
+from pathlib import Path
 
 # ── AI toggle ──
 USE_LLM = False
 # USE_LLM = True
 # ───────────────
 
-data = joblib.load("data/model.pkl")
+_root_dir = Path(__file__).parent.parent
+data = joblib.load(_root_dir / "data/model.pkl")
 tfidf_matrix = data["matrix"]
 vectorizer = data["vectorizer"]
 characters = data["characters"]
 
-character_data = joblib.load("data/character_data.pkl")
+character_data = joblib.load(_root_dir / "data/character_data.pkl")
 
 # calculates similarity between query and character docs, returns best match's name
 def query_character(query):
