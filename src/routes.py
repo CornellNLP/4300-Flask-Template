@@ -27,9 +27,6 @@ def query_character(query):
     query_vec = vectorizer.transform([query])
     sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
     return characters[sims.argmax()]
-
-
-
 def json_search(query):
    
     # only retrieve top 10 relevant documents
