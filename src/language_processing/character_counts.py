@@ -300,8 +300,9 @@ names_and_variants = {
 
 
 #first function get counts of characters output to  text file
+from pathlib import Path
 nlp = spacy.load("en_core_web_sm")
-docs = pd.read_csv("data/piratefolk_comments.csv")
+docs = pd.read_csv(Path(__file__).parent.parent.parent / "data/piratefolk_comments.csv")
 comments = docs["text"].dropna().tolist()
 
 
