@@ -13,5 +13,5 @@ spacy
 numpy
 joblib
 datetime
-
+rapidfuzz
 
