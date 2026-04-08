@@ -1,23 +1,338 @@
 # file for similarity calculations and similar helper functions
 import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import nltk
 from nltk.sentiment import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import joblib
 from datetime import datetime
+from rapidfuzz.distance import Levenshtein # REMIDNER TO ADD RAPIDFUZZ TO PIPINSTALL REQUIREMENTS
 
 
 
 #JW function for returning keyword for a given query. multiword
 # queries will be treated as a vecotr to compare against character name vecotrs.
-rp = pd.read_csv("src/language_processing/reverse_postings.csv")
-pfc = pd.read_csv("data/piratefolk_comments.csv")
+rp = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv") # trying out alias-accounting reverse_postings
+pfc = pd.read_csv("data/piratefolk_comments.csv") # comments with ids and text
 
-def get_comments_by_character(character):
+# dict mapping character name to list of aliases (translations, canon nicknames, etc.)
+# aliases gathered from the one piece wiki
+# does not cover cases of reddit-given nicknames
+name_variants = {
+    # Straw Hat Pirates
+    "Monkey D. Luffy": ["Luffy", "Monkey D. Rufi", "Rufi", "Ruffy", "Monch D. Roof"],
+    "Roronoa Zoro": ["Zoro", "Roronoa Zolo", "Zolo", "Suron"],
+    "Nami": [],
+    "Usopp": ["Usoppu", "Usop", "Liar Bo", "Crook Bo", "Swindle Bo"],
+    "Sogeking": ["Soge King", "Sniper King"],
+    "Sanji": ["Sangi", "Sunkist"],
+    "Tony Tony Chopper": ["Chopper"],
+    "Nico Robin": ["Robin", "Lobin", "Cat Lowbun"],
+    "Franky": ["Flanky"],
+    "Cutty Flam": ["Cutty Fran", "Kati Fram"],
+    "Brook": ["Brooke"],
+    "Jinbe": ["Jimbei", "Jinbei", "Jimbe"],
+
+    # Straw Hat Allies & Recurring Characters
+    "Nefertari Vivi": ["Vivi", "Nefeltari Vivi", "Nefertari Bibi", "Vivi Nefertari"],
+    "Nefertari Cobra": ["Cobra", "Nefeltari Cobra", "Nefeltari Nebra"],
+    "Nefertari Titi": [],
+    "Shanks": [],
+    "Silvers Rayleigh": ["Rayleigh"],
+    "Shakuyaku": ["Shakky"],
+    "Portgas D. Ace": ["Ace", "Portgaz D. Ace", "Portgaz D. Trace"],
+    "Sabo": [],
+    "Monkey D. Garp": ["Garp"],
+    "Monkey D. Dragon": ["Dragon"],
+    "Koby": ["Coby", "Cobby"],
+    "Helmeppo": [],
+    "Makino": [],
+    "Dadan": [],
+    "Curly Dadan": [],
+    "Woop Slap": [],
+    "Genzo": [],
+    "Nojiko": [],
+    "Bell-mère": ["Belle-Mère", "Bellemere"],
+    "Kaya": [],
+    "Merry": [],
+    "Iceburg": ["Iceberg", "Icebarg", "Icebarge"],
+    "Paulie": ["Pauly"],
+    "Kokoro": [],
+    "Chimney": [],
+    "Zambai": [],
+    "Duval": [],
+    "Hatchan": ["Hachi"],
+    "Camie": ["Keimi", "Caymy"],
+    "Pappag": ["Pappagu", "Pappug"],
+    "Karoo": ["Carue", "Kalu", "Karu"],
+    "Cavendish": [],
+    "Bartolomeo": [],
+    "Sai": [],
+    "Leo": [],
+    "Kyros": [],
+    "Rebecca": [],
+    "Viola": [],
+    "Riku Doldo III": ["Riku"],
+    "Trafalgar D. Water Law": ["Law", "Trafalgar Law"],
+    "Bepo": [],
+    "Kin'emon": [],
+    "Momonosuke": [],
+    "Kanjuro": [],
+    "Raizo": [],
+    "Denjiro": [],
+    "Kawamatsu": [],
+    "Ashura Doji": [],
+    "Inuarashi": [],
+    "Nekomamushi": [],
+    "Carrot": [],
+    "Yamato": [],
+    "Pedro": [],
+    "Wanda": [],
+    "Hiriluk": ["Dr. Hiluluk", "Dr. Hiruluk"],
+    "Kureha": ["Dr. Kureha"],
+    "Dalton": [],
+    "Dorry": [],
+    "Brogy": [],
+    "Coribou": [],
+    "Marigold": [],
+    "Sandersonia": [],
+    "Boa Hancock": ["Hancock"],
+    "Boa Marigold": [],
+    "Boa Sandersonia": [],
+    "Marguerite": ["Margaret"],
+    "Emporio Ivankov": ["Ivankov", "Emporio Ivancov", "Emporio Iwankov"],
+    "Inazuma": [],
+    "Bentham": ["Bon Clay", "Bon Kurei", "Von Creay"],
+    "Crocodile": [],
+    "Daz Bonez": [],
+    "Emporio Ivankov": ["Ivankov", "Emporio Ivancov", "Emporio Iwankov"],
+    "Jinbe": ["Jimbei", "Jinbei", "Jimbe"],
+    "Koala": [],
+    "Hack": [],
+    "Otohime": [],
+    "Neptune": [],
+    "Fukaboshi": [],
+    "Ryuboshi": [],
+    "Manboshi": [],
+    "Shirahoshi": [],
+    "Jaguar D. Saul": ["Saul", "Hagawa D. Saulo", "Jaguar D. Saulo", "Hagwarl D. Saulo", "Hagwar D. Sauro"],
+    "Mont Blanc Cricket": ["Cricket", "Montblanc Cricket", "Monbran Cricket", "Mombran Cricket"],
+    "Mont Blanc Noland": ["Noland", "Montblanc Noland", "Monbran Noland", "Mombran Noland", "Montblanc Norland"],
+    "Laki": [],
+    "Wyper": ["Wyler", "Wiper", "Waipa"],
+    "Kalgara": ["Calgara"],
+    "Enel": ["Eneru", "Ener"],
+    "Wiper": [],
+
+    # Marines & World Government
+    "Sengoku": ["Zango"],
+    "Tsuru": ["Crane"],
+    "Smoker": ["Chaser"],
+    "Tashigi": [],
+    "Fullbody": ["Finbudi"],
+    "Jango": ["Django"],
+    "Hina": [],
+    "Aokiji": ["Kuzan"],
+    "Akainu": ["Sakazuki"],
+    "Kizaru": ["Borsalino"],
+    "Fujitora": ["Issho"],
+    "Ryokugyu": ["Aramaki"],
+    "Sengoku": ["Zango"],
+    "Garp": [],
+    "Coby": [],
+    "Brannew": [],
+    "Hannyabal": ["Hannibal", "Hannybal"],
+    "Magellan": [],
+    "Shiryu": ["Shilliew"],
+    "Imu": ["Im"],
+    "Sterry": ["Stelly"],
+    "Wapol": [],
+    "Nefertari Cobra": ["Cobra", "Nefeltari Cobra", "Nefeltari Nebra"],
+    "Cp9": [],
+    "Rob Lucci": ["Lucci", "Rob Rucchi"],
+    "Kaku": [],
+    "Kalifa": ["Califa"],
+    "Jabra": ["Jyabura", "Jabura"],
+    "Fukurou": ["Fukurô"],
+    "Kumadori": [],
+    "Spandam": [],
+    "Blueno": [],
+    "Bartholomew Kuma": ["Kuma", "Bisoromi Bear"],
+
+    # Warlords / Shichibukai
+    "Dracule Mihawk": ["Mihawk", "Juraquille Mihawk", "Mihark"],
+    "Gecko Moria": ["Moria", "Gekko Moriah"],
+    "Donquixote Doflamingo": [
+        "Doflamingo",
+        "Don Quixote Doflamingo",
+        "Tanjiahdo Lofulamingo",
+        "Don Quichotte Doflamingo",
+        "Don Quichotte de Flamingo",
+    ],
+    "Donquixote Rosinante": ["Rosinante", "Corazon", "Don Quixote Rocinante", "Donquixote Rocinante", "Don Quichotte Rocinante"],
+    "Buggy": ["Parchy"],
+    "Perona": ["Perhona"],
+    "Absalom": [],
+
+    # Yonko & Crews
+    "Edward Newgate": ["Newgate", "Whitebeard", "Shirohige", "Edward Newcart", "White Facial Hair"],
+    "Marco": [],
+    "Portgas D. Ace": ["Ace", "Portgaz D. Ace", "Portgaz D. Trace"],
+    "Jozu": ["Joz", "Jose", "Jaws"],
+    "Vista": [],
+    "Thatch": [],
+    "Squard": ["Squardo", "Squad", "Squado"],
+    "Kaidou": ["Kaido"],
+    "King": [],
+    "Queen": [],
+    "Jack": [],
+    "Yamato": [],
+    "Charlotte Linlin": ["Linlin", "Charlotte Rinrin", "Charlotte Lingling", "Big Mom", "Big Mam"],
+    "Charlotte Katakuri": ["Katakuri", "Charlotte Dogtooth"],
+    "Charlotte Smoothie": ["Smoothie"],
+    "Charlotte Cracker": ["Cracker"],
+    "Charlotte Pudding": ["Pudding", "Charlotte Purin"],
+    "Charlotte Basskarte": ["Basskarte", "Charlotte Bassquarte"],
+    "Shanks": [],
+    "Lucky Roux": ["Lucky Roo"],
+    "Benn Beckman": [],
+    "Yasopp": [],
+    "Marshall D. Teach": [
+        "Teach",
+        "Blackbeard",
+        "Kurohige",
+        "Marshall D. Teech",
+        "Masuru D. Chocheh",
+        "Black Facial Hair",
+    ],
+    "Jesus Burgess": ["Burgess", "G. Zass Burgess", "Xusasu Basasu"],
+    "Van Augur": ["Augur", "Cloud Ouga", "Van Auger", "Van Ogre"],
+    "Doc Q": ["Doku Q"],
+    "Laffitte": ["Lafitte", "Raffit", "Lafeita"],
+    "Catarina Devon": ["Devon", "Catalina Devon"],
+    "Shiryu": ["Shilliew"],
+    "Rocks D. Xebec": ["Rocks", "Xebec", "Rox"],
+
+    # Villains & Antagonists
+    "Arlong": [],
+    "Hody Jones": ["Hody", "Hordy Jones", "Hodi Jones"],
+    "Crocodile": [],
+    "Nico Robin": ["Robin", "Lobin", "Cat Lowbun"],
+    "Mr. 1": [],
+    "Mr. 3": [],
+    "Mr. 4": [],
+    "Mr. 5": [],
+    "Baroque Works": [],
+    "Caesar Clown": ["Caesar", "Caesar Crown"],
+    "Vergo": [],
+    "Monet": ["Mone"],
+    "Trebol": ["Trevor"],
+    "Diamante": [],
+    "Pica": [],
+    "Sugar": [],
+    "Giolla": ["Jora"],
+    "Baby 5": [],
+    "Buffalo": [],
+    "Senor Pink": [],
+    "Machvise": [],
+    "Lao G": [],
+    "Dellinger": [],
+    "Bellamy": ["Binami"],
+    "Enel": ["Eneru", "Ener"],
+    "Ohm": ["Aum", "Orm", "Ohmu", "Om"],
+    "Satori": [],
+    "Shura": [],
+    "Gedatsu": [],
+    "Wapol": [],
+    "Chess": [],
+    "Kuromarimo": [],
+    "Don Krieg": [],
+    "Gin": [],
+    "Pearl": [],
+    "Kuro": [],
+    "Sham": ["Siam"],
+    "Buchi": ["Butchie"],
+    "Porchemy": ["Polchemy", "Polchemi"],
+    "Alvida": [],
+    "Buggy": ["Parchy"],
+    "Cabaji": [],
+    "Mohji": [],
+    "Richie": [],
+    "Enishida": ["Genista"],
+    "Oars": ["Oz", "Odr", "Odz", "Ohz"],
+    "Oars Jr.": [],
+    "Ryuma": ["Ryuuma", "Ryouma"],
+    "Hogback": [],
+    "Absalom": [],
+    "Shyarly": ["Sharley", "Shirley"],
+    "Wadatsumi": [],
+    "Big Pan": ["Big Bun"],
+    "Eustass Kid": ["Kid", "Eustass Kidd"],
+    "Killer": [],
+    "Apoo": [],
+    "Hawkins": [],
+    "Drake": [],
+    "Urouge": [],
+    "Capone Bege": ["Bege"],
+    "Chew": ["Choo", "Chuu"],
+    "Kuroobi": [],
+    "Nami": [],
+
+    # Other Notable Characters
+    "Going Merry": ["Merry Go"],
+    "Thousand Sunny": [],
+    "Aladine": ["Aladdin"],
+    "Aremo Ganmi": ["Peekatha Krotch"],
+    "Banchi": ["Bunchi"],
+    "Bartholomew Kuma": ["Kuma", "Bisoromi Bear"],
+    "Chouchou": ["Shushu"],
+    "Clou D. Clover": ["Clover", "Claiomh D. Clover"],
+    "Corto": ["Colt"],
+    "Fukurou": ["Fukurô"],
+    "Gatherine": ["Gyatharin"],
+    "Grabar": ["Grabba"],
+    "Hasami": ["Scissors", "Pincers"],
+    "Holy": ["Holly"],
+    "Ikaros Much": ["Icaros Muhhi"],
+    "Kumashi": ["Kumacy", "Kuma-C"],
+    "Matsuge": ["Eyelashes", "Eyelash", "Lashes"],
+    "Ochoku": ["Wang Zhi"],
+    "Stronger": ["Strongheart"],
+    "Su": ["Suu"],
+    "Tibany": ["Elizabeth"],
+    "Sterry": ["Stelly"],
+    "Shelly": ["Sherry"],
+    "Koza": ["Kohza"],
+}
+
+
+
+# !!! function copied from character_counts.py
+# fuzzy match query against all character names and aliases, return canonical name
+# intending to be used in routes.py
+def fuzzy_match_character(query: str, names_and_variants: dict[str, list[str]], threshold=100) -> str:
+    best_match = None
+    best_distance = float('inf')
+    query_lower = query.lower()
+    
+    for char, aliases in names_and_variants.items():
+        all_names = [char] + aliases
+        for name in all_names:
+            distance = Levenshtein.distance(query_lower, name.lower())
+            if distance < best_distance:
+                best_distance = distance
+                best_match = char
+
+    if best_distance <= threshold:
+        return best_match
+    return ""
+
+
+
+# input: character name
+# output: list of comment ids that mention that character
+def get_comments_by_character(character: str) -> list[str]:
     row = rp[rp["character"] == character]
     if row.empty:
         return []
@@ -29,15 +344,23 @@ def get_comments_by_character(character):
     
     return comments
 
-
-def build_character_docs():
+# outputs a dict that maps each character name to a string concatenating all comments
+# that mention that character.
+def build_character_docs() -> dict[str, str]:
     character_docs = {}
     for character in rp["character"]:
         comments = get_comments_by_character(character)
         character_docs[character] = " ".join(comments)
     return character_docs
 
-def create_character_tfidf(character_docs):
+# input: dict mapping character names to the concatenation of comments mentioning that name
+# output:
+#        - list of characer names
+#        - tfidf vectorizer
+#        - tfidf matrix:
+#                - rows correspond to characters
+#                - columns correspond to terms
+def create_character_tfidf(character_docs: dict[str, str]):
     characters = list(character_docs.keys())
     docs = list(character_docs.values())
 
@@ -49,14 +372,23 @@ def create_character_tfidf(character_docs):
 character_docs = build_character_docs()
 characters, vectorizer, tfidf_matrix = create_character_tfidf(character_docs)
 
-def query_character(query, vectorizer, tfidf_matrix, characters, top_k=1):
+# input:
+#       - query string
+#       - tfidf vectorizer
+#       - tfidf matrix
+#       - list of character names corresponding to rows of tfidf matrix
+# output: charater name with highest cosine sim to query
+#       - if query is an exact match for a character name, then just return that name
+def query_character(query: str, vectorizer: TfidfVectorizer, tfidf_matrix, characters: list[str], top_k: int = 1) -> str:
     query_vec = vectorizer.transform([query])
     sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
     best_index = sims.argmax()
     if query in characters:
         return query
+        # TODO: should check for aliases too. also, case sensitivity?
     else:
         return characters[best_index]
+    # TODO: code doesn't use top_k yet
 
 def make_pickle():
     joblib.dump({
@@ -65,13 +397,16 @@ def make_pickle():
     "characters": characters
 }, "data/model.pkl")
     
-#make_pickle()
+make_pickle()
 
-"""print("below is case sensitive teest")
-print(get_comments_by_character("Kuro") == get_comments_by_character("kuro"))
-print("below is the query test")
-print(query_character("Akainu", vectorizer, tfidf_matrix, characters))
-print("enies lobby?")
-print([c for c in get_comments_by_character("akainu") if "him" in c.lower()])"""
+
+
+# TESTS ----------------------------------------------------------------------------------------
+# print("below is case sensitive teest")
+# print(get_comments_by_character("Kuro") == get_comments_by_character("kuro"))
+# print("below is the query test")
+# print(query_character("Akainu", vectorizer, tfidf_matrix, characters))
+# print("enies lobby?")
+# print([c for c in get_comments_by_character("akainu") if "him" in c.lower()])
 
 

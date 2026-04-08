@@ -227,6 +227,7 @@
             fetch(`/search?q=${encodeURIComponent(trimmedQuery)}`)
                 .then(res => res.json())
                 .then(data => {
+                    console.log('Full response data:', data);
                     const characterName = data.character || 'ERROR';
                     console.log(`Best character match: "${characterName}"`);
                     displayCharacterResults(characterName, trimmedQuery)

@@ -8,7 +8,8 @@ comments_df = pd.read_csv("data/piratefolk_comments.csv")
 comments_df = comments_df.set_index("id")
 
 # postings is a csv with columns character, comment_ids (comma separated)
-postings_df = pd.read_csv("src/language_processing/reverse_postings.csv")
+# postings_df = pd.read_csv("src/language_processing/reverse_postings.csv")
+postings_df = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv")
 postings_df = postings_df.drop_duplicates(subset="character")
 postings_df = postings_df.set_index("character")
 
@@ -95,7 +96,7 @@ class Character:
         #ong put dummy data here for now
         self.summary = summary
         #complete ratings_over_time function
-        self.ratings_over_time = ratings_over_time(name) if ratings_over_time is not None else []
+        self.ratings_over_time = ratings_over_time if ratings_over_time is not None else []
         #should be rating of final rating in ratings over time
         self.current_rating = self.ratings_over_time[len(self.ratings_over_time)-1].rating if self.ratings_over_time else 0
         self.comments = comments if comments is not None else []
