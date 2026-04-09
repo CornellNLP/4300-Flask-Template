@@ -1,6 +1,7 @@
-# Data files
-data/
-*.csv
+# Data files - ignore only the large processed files
+data/processed/recipes_with_calories.csv
+src/MealMap/recipes_with_nutrition.csv
+src/MealMap/recipes_subset.csv
 
 # Python
 __pycache__/
