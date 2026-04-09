@@ -17,9 +17,8 @@ from functools import lru_cache
 USE_LLM = False
 # USE_LLM = True
 # ───────────────
-
 _root_dir = Path(__file__).parent.parent
-data = joblib.load(_root_dir / "data/model.pkl")
+data = joblib.load("data/model.pkl")
 tfidf_matrix = data["matrix"]
 vectorizer = data["vectorizer"]
 characters = data["characters"]
