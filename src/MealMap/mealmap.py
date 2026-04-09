@@ -11,11 +11,19 @@ name_similarity_map = {}
 
 all_ingredients = set()
 
-def dot_product(name_vec_map, sample_dish_vector):
-    np_sample_dish_vector = np.array(sample_dish_vector)
-    for name in name_vec_map:
-        np_dish_vector = np.array(name_vec_map[name])
-        name_similarity_map[name] = np.dot(np_sample_dish_vector, np_dish_vector)
+def cosine_similarity_score(name_vec_map, sample_dish_vector):
+    np_sample = np.array(sample_dish_vector, dtype=float)
+    norm_sample = np.linalg.norm(np_sample)
+    if norm_sample == 0:
+        for name in name_vec_map:
+            name_similarity_map[name] = 0.0
+        return
+    for name, vec in name_vec_map.items():
+        np_dish = np.array(vec, dtype=float)
+        norm_dish = np.linalg.norm(np_dish)
+        name_similarity_map[name] = 0.0 if norm_dish == 0 else float(
+            np.dot(np_sample, np_dish) / (norm_sample * norm_dish)
+        )
 
 def find_matching_dishes(sample_dish, name_ingredient_map):
     matches = []
@@ -77,7 +85,7 @@ def main():
 
     sample_dish_vector = name_vector_map[similar_dish]
 
-    dot_product(name_vector_map, sample_dish_vector)
+    cosine_similarity_score(name_vector_map, sample_dish_vector)
 
     ranked_dishes = sorted(
         name_similarity_map.items(),
@@ -93,7 +101,7 @@ def main():
         if count == 10:
             break
 
-    
+
 
 if __name__ == "__main__":
     main()

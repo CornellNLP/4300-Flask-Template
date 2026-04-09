@@ -2,13 +2,18 @@ let currentDiet = "";
 let currentRecipes = [];
 let currentMatches = [];
 let selectedFood = "";
+let currentModel = "svd";
 
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
+const clearFiltersButton = document.getElementById("clearFiltersButton");
 const recipesGrid = document.getElementById("recipesGrid");
 const statusMessage = document.getElementById("statusMessage");
-const nutrientFilters = document.getElementById("nutrientFilters");
 const filterButtons = document.querySelectorAll(".filter-btn");
+const activeState = document.getElementById("activeState");
+const resultsTitle = document.getElementById("resultsTitle");
+const metaPills = document.getElementById("metaPills");
+const modelSelect = document.getElementById("modelSelect");
 
 const recipeModal = document.getElementById("recipeModal");
 const modalBackdrop = document.getElementById("modalBackdrop");
@@ -29,106 +34,77 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function parseMaybeList(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [String(value)];
-  } catch {
-    return String(value)
-      .split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-}
-
-function current_prefs() {
-  return currentDiet || "none";
-}
-
-function showFilters() {
-  nutrientFilters.classList.remove("hidden");
-}
-
 function displayValue(value, suffix = "") {
-  if (value === null || value === undefined || value === "") return "N/A";
+  if (value === null || value === undefined || value === "" || String(value).toLowerCase() === "nan") return "N/A";
   return `${escapeHtml(value)}${suffix}`;
 }
 
-function recipeCard(recipe, index) {
-  const title = recipe.title || recipe.name || "Untitled Recipe";
-  const calories = recipe.calories ?? "N/A";
-  const protein = recipe.protein_g ?? "N/A";
-  const carbs = recipe.carbs_g ?? "N/A";
-  const fat = recipe.fat_g ?? "N/A";
-  const fiber = recipe.fiber_g ?? "N/A";
-  const sodium = recipe.sodium_mg ?? "N/A";
-  const diet = recipe.diet || "";
-  const servings = recipe.servings ?? "N/A";
-  const similarity = recipe.similarity_score ?? "N/A";
-  const nutritionStatus = recipe.nutrition_status || "";
-  const confidence = recipe.nutrition_confidence ?? "N/A";
-
-  return `
-    <article class="card clickable-card" data-index="${index}" role="button" tabindex="0">
-      <div class="card-body">
-        <h2>${escapeHtml(title)}</h2>
-        <div class="meta-row">
-          <span class="badge">Similarity: ${escapeHtml(similarity)}%</span>
-          <span class="badge">Servings: ${escapeHtml(servings)}</span>
-          <span class="badge">Confidence: ${escapeHtml(confidence)}</span>
-          ${diet ? `<span class="badge">${escapeHtml(diet)}</span>` : ""}
-          ${nutritionStatus ? `<span class="badge">${escapeHtml(nutritionStatus)}</span>` : ""}
-        </div>
-        <div class="nutrition-grid">
-          <div class="nutrition-box"><div class="label">Calories</div><div class="value">${displayValue(calories)}</div></div>
-          <div class="nutrition-box"><div class="label">Protein</div><div class="value">${displayValue(protein, "g")}</div></div>
-          <div class="nutrition-box"><div class="label">Carbs</div><div class="value">${displayValue(carbs, "g")}</div></div>
-          <div class="nutrition-box"><div class="label">Fat</div><div class="value">${displayValue(fat, "g")}</div></div>
-          <div class="nutrition-box"><div class="label">Fiber</div><div class="value">${displayValue(fiber, "g")}</div></div>
-          <div class="nutrition-box"><div class="label">Sodium</div><div class="value">${displayValue(sodium, " mg")}</div></div>
-        </div>
-        <p class="open-hint">Click to view full recipe</p>
-      </div>
-    </article>
-  `;
+function niceDietLabel(diet) {
+  if (!diet) return "None";
+  return diet
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
-function selectMatchCard(match, index) {
-  const title = match.title || "Untitled";
-  const calories = match.calories ?? "N/A";
-  const protein = match.protein_g ?? "N/A";
-  const carbs = match.carbs_g ?? "N/A";
-  const fat = match.fat_g ?? "N/A";
-  const fiber = match.fiber_g ?? "N/A";
-  const sodium = match.sodium_mg ?? "N/A";
-  const servings = match.servings ?? "N/A";
-  const similarity = match.similarity_score ?? "N/A";
-  const nutritionStatus = match.nutrition_status || "";
-  const activeDiet = currentDiet || "";
+function niceModelLabel(model) {
+  return model === "tfidf" ? "TF-IDF" : "SVD";
+}
 
+function normalizeList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return String(value)
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function updateActiveState() {
+  const pieces = [];
+  if (selectedFood) pieces.push(`Query: ${selectedFood}`);
+  pieces.push(`Model: ${niceModelLabel(currentModel)}`);
+  if (currentDiet) pieces.push(`Goal: ${niceDietLabel(currentDiet)}`);
+  activeState.innerHTML = pieces.map((piece) => `<span class="state-pill">${escapeHtml(piece)}</span>`).join("");
+}
+
+function updateResultsTitle(prefix = "Results") {
+  if (!selectedFood) {
+    resultsTitle.textContent = "Search to get started";
+    return;
+  }
+  resultsTitle.textContent = `${prefix} for "${selectedFood}"`;
+}
+
+function recipeCard(recipe, index) {
+  const title = recipe.title || "Untitled Recipe";
   return `
-    <article class="card">
-      <div class="card-body">
-        <h2>${escapeHtml(title)}</h2>
-        <div class="meta-row">
-          <span class="badge">Similarity: ${escapeHtml(similarity)}%</span>
-          <span class="badge">Servings: ${escapeHtml(servings)}</span>
-          ${activeDiet ? `<span class="badge">${escapeHtml(activeDiet)}</span>` : ""}
-          ${nutritionStatus ? `<span class="badge">${escapeHtml(nutritionStatus)}</span>` : ""}
+    <article class="card clickable-card" data-index="${index}" role="button" tabindex="0">
+      <div class="card-top">
+        <div>
+          <h3>${escapeHtml(title)}</h3>
+          <div class="meta-row">
+            <span class="badge">Similarity ${displayValue(recipe.similarity_score, "%")}</span>
+            <span class="badge">${escapeHtml(niceModelLabel(recipe.retrieval_method || currentModel))}</span>
+            <span class="badge">Model ${displayValue(recipe.model_score, "%")}</span>
+            <span class="badge">TF-IDF ${displayValue(recipe.tfidf_score, "%")}</span>
+            <span class="badge">Servings ${displayValue(recipe.servings)}</span>
+            <span class="badge">${escapeHtml(recipe.nutrition_status || "Nutrition info")}</span>
+            ${recipe.diet ? `<span class="badge accent">${escapeHtml(niceDietLabel(recipe.diet))}</span>` : ""}
+          </div>
         </div>
-        <div class="nutrition-grid">
-          <div class="nutrition-box"><div class="label">Calories</div><div class="value">${displayValue(calories)}</div></div>
-          <div class="nutrition-box"><div class="label">Protein</div><div class="value">${displayValue(protein, "g")}</div></div>
-          <div class="nutrition-box"><div class="label">Carbs</div><div class="value">${displayValue(carbs, "g")}</div></div>
-          <div class="nutrition-box"><div class="label">Fat</div><div class="value">${displayValue(fat, "g")}</div></div>
-          <div class="nutrition-box"><div class="label">Fiber</div><div class="value">${displayValue(fiber, "g")}</div></div>
-          <div class="nutrition-box"><div class="label">Sodium</div><div class="value">${displayValue(sodium, " mg")}</div></div>
-        </div>
-        <button class="match-select-btn" data-index="${index}">Use This</button>
       </div>
+
+      <div class="nutrition-grid">
+        <div class="nutrition-box"><div class="label">Calories</div><div class="value">${displayValue(recipe.calories)}</div></div>
+        <div class="nutrition-box"><div class="label">Protein</div><div class="value">${displayValue(recipe.protein_g, "g")}</div></div>
+        <div class="nutrition-box"><div class="label">Carbs</div><div class="value">${displayValue(recipe.carbs_g, "g")}</div></div>
+        <div class="nutrition-box"><div class="label">Fat</div><div class="value">${displayValue(recipe.fat_g, "g")}</div></div>
+        <div class="nutrition-box"><div class="label">Fiber</div><div class="value">${displayValue(recipe.fiber_g, "g")}</div></div>
+        <div class="nutrition-box"><div class="label">Sodium</div><div class="value">${displayValue(recipe.sodium_mg, " mg")}</div></div>
+      </div>
+
+      <p class="open-hint">Open full recipe</p>
     </article>
   `;
 }
@@ -138,231 +114,261 @@ function renderRecipes(recipes) {
 
   if (!recipes.length) {
     recipesGrid.innerHTML = "";
-    setStatus("No recipes found.");
+    setStatus("No recipes found.", true);
     return;
   }
 
   recipesGrid.innerHTML = recipes.map((recipe, index) => recipeCard(recipe, index)).join("");
-  setStatus(`Showing ${recipes.length} recipes for ${selectedFood}${currentDiet ? ` • ${currentDiet}` : ""}.`);
-  attachCardListeners();
-}
+  setStatus(`Showing ${recipes.length} recipes using ${niceModelLabel(currentModel)}.`);
+  document.querySelectorAll(".clickable-card").forEach((card) => {
+    const open = () => {
+      const index = Number(card.dataset.index);
+      openRecipeModal(currentRecipes[index]);
+    };
 
-function displayMatches(matches) {
-  currentMatches = matches;
-  currentRecipes = [];
-
-  if (!matches.length) {
-    recipesGrid.innerHTML = "";
-    setStatus("No close matches found. Try another search.");
-    return;
-  }
-
-  showFilters();
-  recipesGrid.innerHTML = matches.map((match, index) => selectMatchCard(match, index)).join("");
-  setStatus(currentDiet
-    ? `Select the food you meant. Current filter: ${currentDiet}.`
-    : "Select the food you meant, or choose a nutrient filter first.");
-
-  document.querySelectorAll(".match-select-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      const index = Number(button.dataset.index);
-      selectedFood = matches[index].title;
-      fetch_similar_recipes();
+    card.addEventListener("click", open);
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        open();
+      }
     });
   });
 }
 
-function openModal(recipe) {
-  const title = recipe.title || recipe.name || "Untitled Recipe";
-  const ingredients = parseMaybeList(recipe.ingredients);
-  const directions = parseMaybeList(recipe.directions);
-  const calories = recipe.calories ?? "N/A";
-  const protein = recipe.protein_g ?? "N/A";
-  const carbs = recipe.carbs_g ?? "N/A";
-  const fat = recipe.fat_g ?? "N/A";
-  const fiber = recipe.fiber_g ?? "N/A";
-  const sodium = recipe.sodium_mg ?? "N/A";
-  const similarity = recipe.similarity_score ?? "N/A";
-  const nutritionStatus = recipe.nutrition_status || "";
-  const confidence = recipe.nutrition_confidence ?? "N/A";
-  const matchedKeywords = recipe.matched_ingredient_keywords || "";
-  const link = recipe.link ? (String(recipe.link).startsWith("http") ? recipe.link : `https://${recipe.link}`) : "";
+function renderMatchChoices(matches) {
+  currentMatches = matches;
+
+  if (!matches.length) {
+    recipesGrid.innerHTML = "";
+    setStatus("No close matches found.", true);
+    return;
+  }
+
+  recipesGrid.innerHTML = matches
+    .map(
+      (match, index) => `
+        <article class="card">
+          <div class="card-top">
+            <div>
+              <h3>${escapeHtml(match.title || "Untitled")}</h3>
+              <div class="meta-row">
+                <span class="badge">Similarity ${displayValue(match.similarity_score, "%")}</span>
+                <span class="badge">${escapeHtml(niceModelLabel(match.retrieval_method || currentModel))}</span>
+                <span class="badge">Model ${displayValue(match.model_score, "%")}</span>
+                <span class="badge">TF-IDF ${displayValue(match.tfidf_score, "%")}</span>
+                <span class="badge">Servings ${displayValue(match.servings)}</span>
+                <span class="badge">${escapeHtml(match.nutrition_status || "Nutrition info")}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="nutrition-grid">
+            <div class="nutrition-box"><div class="label">Calories</div><div class="value">${displayValue(match.calories)}</div></div>
+            <div class="nutrition-box"><div class="label">Protein</div><div class="value">${displayValue(match.protein_g, "g")}</div></div>
+            <div class="nutrition-box"><div class="label">Carbs</div><div class="value">${displayValue(match.carbs_g, "g")}</div></div>
+            <div class="nutrition-box"><div class="label">Fat</div><div class="value">${displayValue(match.fat_g, "g")}</div></div>
+            <div class="nutrition-box"><div class="label">Fiber</div><div class="value">${displayValue(match.fiber_g, "g")}</div></div>
+            <div class="nutrition-box"><div class="label">Sodium</div><div class="value">${displayValue(match.sodium_mg, " mg")}</div></div>
+          </div>
+
+          <button class="primary-btn match-select-btn" data-index="${index}">Use This Recipe</button>
+        </article>
+      `
+    )
+    .join("");
+
+  setStatus(`Found ${matches.length} close matches using ${niceModelLabel(currentModel)}. Pick the best one.`);
+  document.querySelectorAll(".match-select-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      const match = currentMatches[Number(button.dataset.index)];
+      fetchRecommendations(match.title);
+    });
+  });
+}
+
+function listMarkup(items, ordered = false) {
+  const cleanItems = normalizeList(items);
+  if (!cleanItems.length) return `<p class="empty-copy">Not available.</p>`;
+  const tag = ordered ? "ol" : "ul";
+  return `<${tag} class="recipe-list">${cleanItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</${tag}>`;
+}
+
+function openRecipeModal(recipe) {
+  if (!recipe) return;
 
   modalBody.innerHTML = `
-    <h2 class="modal-title">${escapeHtml(title)}</h2>
-
-    <div class="meta-row">
-      <span class="badge">Similarity: ${escapeHtml(similarity)}%</span>
-      <span class="badge">Confidence: ${escapeHtml(confidence)}</span>
-      ${nutritionStatus ? `<span class="badge">${escapeHtml(nutritionStatus)}</span>` : ""}
+    <div class="modal-header">
+      <p class="modal-kicker">${recipe.diet ? escapeHtml(niceDietLabel(recipe.diet)) : "MealMap Recipe"}</p>
+      <h2 class="modal-title">${escapeHtml(recipe.title || "Untitled Recipe")}</h2>
+      <div class="meta-row">
+        <span class="badge">Similarity ${displayValue(recipe.similarity_score, "%")}</span>
+        <span class="badge">${escapeHtml(niceModelLabel(recipe.retrieval_method || currentModel))}</span>
+        <span class="badge">Model ${displayValue(recipe.model_score, "%")}</span>
+        <span class="badge">TF-IDF ${displayValue(recipe.tfidf_score, "%")}</span>
+        <span class="badge">Servings ${displayValue(recipe.servings)}</span>
+        <span class="badge">${escapeHtml(recipe.nutrition_status || "Nutrition info")}</span>
+      </div>
     </div>
 
     <div class="modal-nutrition-grid">
-      <div class="nutrition-box"><div class="label">Calories</div><div class="value">${displayValue(calories)}</div></div>
-      <div class="nutrition-box"><div class="label">Protein</div><div class="value">${displayValue(protein, "g")}</div></div>
-      <div class="nutrition-box"><div class="label">Carbs</div><div class="value">${displayValue(carbs, "g")}</div></div>
-      <div class="nutrition-box"><div class="label">Fat</div><div class="value">${displayValue(fat, "g")}</div></div>
-      <div class="nutrition-box"><div class="label">Fiber</div><div class="value">${displayValue(fiber, "g")}</div></div>
-      <div class="nutrition-box"><div class="label">Sodium</div><div class="value">${displayValue(sodium, " mg")}</div></div>
+      <div class="nutrition-box"><div class="label">Calories</div><div class="value">${displayValue(recipe.calories)}</div></div>
+      <div class="nutrition-box"><div class="label">Protein</div><div class="value">${displayValue(recipe.protein_g, "g")}</div></div>
+      <div class="nutrition-box"><div class="label">Carbs</div><div class="value">${displayValue(recipe.carbs_g, "g")}</div></div>
+      <div class="nutrition-box"><div class="label">Fat</div><div class="value">${displayValue(recipe.fat_g, "g")}</div></div>
+      <div class="nutrition-box"><div class="label">Fiber</div><div class="value">${displayValue(recipe.fiber_g, "g")}</div></div>
+      <div class="nutrition-box"><div class="label">Sodium</div><div class="value">${displayValue(recipe.sodium_mg, " mg")}</div></div>
     </div>
+
+    <section class="modal-section">
+      <h4>Ingredients</h4>
+      ${listMarkup(recipe.ingredients, false)}
+    </section>
+
+    <section class="modal-section">
+      <h4>Directions</h4>
+      ${listMarkup(recipe.directions, true)}
+    </section>
 
     ${
-      matchedKeywords
-        ? `<div class="modal-section"><h3>Matched Ingredient Clues</h3><p>${escapeHtml(matchedKeywords)}</p></div>`
-        : ""
-    }
-
-    <div class="modal-section">
-      <h3>Ingredients</h3>
-      ${
-        ingredients.length
-          ? `<ul>${ingredients.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
-          : `<p>No ingredients listed.</p>`
-      }
-    </div>
-
-    <div class="modal-section">
-      <h3>Directions</h3>
-      ${
-        directions.length
-          ? `<ol>${directions.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>`
-          : `<p>No directions listed.</p>`
-      }
-    </div>
-
-    ${
-      link
-        ? `<div class="modal-section"><a class="recipe-link" href="${escapeHtml(link)}" target="_blank" rel="noreferrer">Open Original Recipe</a></div>`
+      recipe.link
+        ? `<section class="modal-section">
+             <a class="recipe-link" href="${escapeHtml(recipe.link)}" target="_blank" rel="noopener noreferrer">Open original recipe source</a>
+           </section>`
         : ""
     }
   `;
 
   recipeModal.classList.remove("hidden");
+  recipeModal.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
 }
 
-function closeModal() {
+function closeRecipeModal() {
   recipeModal.classList.add("hidden");
+  recipeModal.setAttribute("aria-hidden", "true");
   document.body.classList.remove("modal-open");
 }
 
-function attachCardListeners() {
-  document.querySelectorAll(".clickable-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      const index = Number(card.dataset.index);
-      openModal(currentRecipes[index]);
-    });
-
-    card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        const index = Number(card.dataset.index);
-        openModal(currentRecipes[index]);
-      }
-    });
-  });
+async function fetchMeta() {
+  try {
+    const response = await fetch("/mealmap/meta");
+    const data = await response.json();
+    currentModel = data.default_retrieval_model || "svd";
+    modelSelect.value = currentModel;
+    metaPills.innerHTML = `
+      <span class="state-pill">Recipes: ${escapeHtml(data.dataset_size)}</span>
+      <span class="state-pill">Nutrition coverage: ${escapeHtml(data.nutrition_coverage)}%</span>
+      <span class="state-pill">SVD comps: ${escapeHtml(data.svd_components)}</span>
+      <span class="state-pill">Variance: ${escapeHtml(data.svd_explained_variance)}%</span>
+    `;
+    updateActiveState();
+  } catch {
+    metaPills.innerHTML = "";
+  }
 }
 
-async function fetch_query_cards() {
+async function fetchMatches() {
   const query = searchInput.value.trim();
-  const params = new URLSearchParams({
-    query,
-    profile: current_prefs()
-  });
-
   if (!query) {
-    setStatus("Enter a food to search for.", true);
+    setStatus("Type a dish before searching.", true);
     return;
   }
 
-  selectedFood = "";
-  showFilters();
-  setStatus(`Finding close matches${currentDiet ? ` • ${currentDiet}` : ""}...`);
+  selectedFood = query;
+  currentModel = modelSelect.value || "svd";
+  updateActiveState();
+  updateResultsTitle("Matches");
   recipesGrid.innerHTML = "";
+  setStatus(`Searching with ${niceModelLabel(currentModel)}...`);
 
   try {
-    const response = await fetch(`/mealmap/matches?${params.toString()}`);
-    if (!response.ok) {
-      throw new Error(`Request failed: ${response.status}`);
-    }
-
+    const response = await fetch(
+      `/mealmap/matches?query=${encodeURIComponent(query)}&profile=${encodeURIComponent(currentDiet || "none")}&model=${encodeURIComponent(currentModel)}`
+    );
     const data = await response.json();
-    const matches = Array.isArray(data.matches) ? data.matches : [];
-
-    if (matches.length === 1) {
-      selectedFood = matches[0].title;
-      fetch_similar_recipes();
-      return;
-    }
-
-    displayMatches(matches);
-  } catch (err) {
-    console.error(err);
-    setStatus("Could not load any close matches.", true);
+    renderMatchChoices(data.matches || []);
+  } catch (error) {
+    console.error(error);
+    setStatus("Could not load matches.", true);
   }
 }
 
-async function fetch_similar_recipes() {
-  if (!selectedFood) {
-    setStatus("Select a close match first.");
-    return;
-  }
-
-  const params = new URLSearchParams({
-    selected: selectedFood,
-    profile: current_prefs(),
-  });
-
-  setStatus(`Finding similar foods${currentDiet ? ` • ${currentDiet}` : ""}...`);
+async function fetchRecommendations(selected) {
+  selectedFood = selected;
+  currentModel = modelSelect.value || "svd";
+  updateActiveState();
+  updateResultsTitle("Recipes");
   recipesGrid.innerHTML = "";
+  setStatus(`Loading recipes with ${niceModelLabel(currentModel)}...`);
 
   try {
-    const response = await fetch(`/mealmap/recommend?${params.toString()}`);
-    if (!response.ok) {
-      throw new Error(`Request failed: ${response.status}`);
-    }
-
+    const response = await fetch(
+      `/mealmap/recommend?selected=${encodeURIComponent(selected)}&profile=${encodeURIComponent(currentDiet || "none")}&model=${encodeURIComponent(currentModel)}`
+    );
     const data = await response.json();
-    const recipes = Array.isArray(data.recipes) ? data.recipes : [];
-    renderRecipes(recipes);
-  } catch (err) {
-    console.error(err);
-    setStatus("Could not load similar foods from the backend.", true);
+    renderRecipes(data.recipes || []);
+  } catch (error) {
+    console.error(error);
+    setStatus("Could not load recipes.", true);
   }
 }
 
-searchButton.addEventListener("click", fetch_query_cards);
+searchButton.addEventListener("click", fetchMatches);
 
 searchInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
-    fetch_query_cards();
+    fetchMatches();
+  }
+});
+
+modelSelect.addEventListener("change", () => {
+  currentModel = modelSelect.value || "svd";
+  updateActiveState();
+  if (selectedFood) {
+    fetchRecommendations(selectedFood);
   }
 });
 
 filterButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    filterButtons.forEach((btn) => btn.classList.remove("active"));
-    button.classList.add("active");
-    currentDiet = button.dataset.diet || "";
+    const clickedDiet = button.dataset.diet;
+
+    if (currentDiet === clickedDiet) {
+      currentDiet = "";
+      button.classList.remove("active");
+    } else {
+      currentDiet = clickedDiet;
+      filterButtons.forEach((btn) => btn.classList.remove("active"));
+      button.classList.add("active");
+    }
+
+    updateActiveState();
 
     if (selectedFood) {
-      fetch_similar_recipes();
-    } else if (searchInput.value.trim()) {
-      fetch_query_cards();
-    } else {
-      setStatus(`Filter set to ${currentDiet}. Search for a food next.`);
+      fetchRecommendations(selectedFood);
     }
   });
 });
 
-modalBackdrop.addEventListener("click", closeModal);
-closeModalButton.addEventListener("click", closeModal);
+clearFiltersButton.addEventListener("click", () => {
+  currentDiet = "";
+  filterButtons.forEach((btn) => btn.classList.remove("active"));
+  updateActiveState();
 
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !recipeModal.classList.contains("hidden")) {
-    closeModal();
+  if (selectedFood) {
+    fetchRecommendations(selectedFood);
   }
 });
 
-setStatus("Search for a food to begin.");
-showFilters();
+closeModalButton.addEventListener("click", closeRecipeModal);
+modalBackdrop.addEventListener("click", closeRecipeModal);
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !recipeModal.classList.contains("hidden")) {
+    closeRecipeModal();
+  }
+});
+
+fetchMeta();
+updateActiveState();
