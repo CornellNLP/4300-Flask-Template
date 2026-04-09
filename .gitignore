@@ -5,6 +5,10 @@ data/
 # Python
 __pycache__/
 *.pyc
+*.pyo
+.venv/
+venv/
+*.db
 
 # Mac
 .DS_Store
