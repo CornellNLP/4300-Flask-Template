@@ -3,6 +3,7 @@ Routes: home page and episode search.
 
 To enable AI chat, set USE_LLM = True below. See llm_routes.py for LLM specific routes.
 """
+import os # (for loading the data/model.pkl) (TODO add to requirements.txt or no?)
 import json
 from flask import render_template, request
 from models import db, Episode, Review
@@ -15,12 +16,18 @@ USE_LLM = False
 # USE_LLM = True
 # ───────────────
 
-data = joblib.load("data/model.pkl")
+current_dir = os.path.dirname(os.path.abspath(__file__)) #the path where routes.py lives
+model_path = os.path.join(current_dir, "language_processing", "data", "model.pkl")
+
+# data = joblib.load("data/model.pkl")
+data = joblib.load(model_path)
 tfidf_matrix = data["matrix"]
 vectorizer = data["vectorizer"]
 characters = data["characters"]
 
-character_data = joblib.load("data/character_data.pkl")
+# character_data = joblib.load("data/character_data.pkl")
+character_data_path = os.path.join(current_dir, "language_processing", "data", "character_data.pkl")
+character_data = joblib.load(character_data_path)
 
 # calculates similarity between query and character docs, returns best match's name
 def query_character(query):
