@@ -1,4 +1,5 @@
 # file for similarity calculations and similar helper functions
+import os # TODO: SHOULD WE ADD THIS TO PIPINSTALL REQUIREMENTS?? -derek
 import numpy as np
 import pandas as pd
 import nltk
@@ -13,8 +14,18 @@ from rapidfuzz.distance import Levenshtein # REMIDNER TO ADD RAPIDFUZZ TO PIPINS
 
 #JW function for returning keyword for a given query. multiword
 # queries will be treated as a vecotr to compare against character name vecotrs.
-rp = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv") # trying out alias-accounting reverse_postings
-pfc = pd.read_csv("data/piratefolk_comments.csv") # comments with ids and text
+# rp = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv")
+# pfc = pd.read_csv("data/piratefolk_comments.csv") # comments with ids and text
+
+# try referencing csv files by joining path names
+current_dir = os.path.dirname(os.path.abspath(__file__)) #the path where similarity_calc.py lives
+rp_path = os.path.join(current_dir, "csv", "reverse_postings_alias_exact.csv") # get inverted index info
+rp = pd.read_csv(rp_path)
+
+pfc_path = os.path.join(current_dir, "data", "piratefolk_comments.csv")
+pfc = pd.read_csv(pfc_path) # comments with ids, texts, and other fields
+    # ohhh it's short for pirate folk comments
+
 
 # dict mapping character name to list of aliases (translations, canon nicknames, etc.)
 # aliases gathered from the one piece wiki
@@ -397,7 +408,7 @@ def make_pickle():
     "characters": characters
 }, "data/model.pkl")
     
-make_pickle()
+# make_pickle()
 
 
 
