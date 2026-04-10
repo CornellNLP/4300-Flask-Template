@@ -12,10 +12,6 @@ from rapidfuzz.distance import Levenshtein # REMIDNER TO ADD RAPIDFUZZ TO PIPINS
 
 
 
-#JW function for returning keyword for a given query. multiword
-# queries will be treated as a vecotr to compare against character name vecotrs.
-# rp = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv")
-# pfc = pd.read_csv("data/piratefolk_comments.csv") # comments with ids and text
 
 # try referencing csv files by joining path names
 current_dir = os.path.dirname(os.path.abspath(__file__)) #the path where similarity_calc.py lives
@@ -458,8 +454,11 @@ def retrieve_k_sim_comments(query, vectorizer, comment_term_tfidf_matrix, ids, t
 
 
 
+# Code below is for creating the comment_term_tfidf_matrix, to be used for retrieving relevant comments
+print("\033[92m Start create_comment_term_tfidf_matrix \033[0m")
 (comment_ids, comment_term_vectorizer, comment_term_tfidf_matrix, texts) = \
-create_comment_term_tfidf_matrix("data/piratefolk_comments.csv")
+create_comment_term_tfidf_matrix(pfc_path)
+print("\033[92m End create_comment_term_tfidf_matrix \033[0m")
 
 
 

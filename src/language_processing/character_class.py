@@ -1,16 +1,23 @@
+import os
 import pandas as pd
 from language_processing import sent_anal
 from datetime import datetime
 import joblib 
 # from src.language_processing import similarity_calc
 
+current_dir = os.path.dirname(os.path.abspath(__file__)) #the path where character_class.py lives
+
 # comments is a csv with columns id, timestamp, score, controversiality, text
-comments_df = pd.read_csv("data/piratefolk_comments.csv")
+# comments_df = pd.read_csv("data/piratefolk_comments.csv")
+comments_df_path = os.path.join(current_dir, "data", "piratefolk_comments.csv")
+comments_df = pd.read_csv(comments_df_path) 
 comments_df = comments_df.set_index("id")
 
 # postings is a csv with columns character, comment_ids (comma separated)
-# postings_df = pd.read_csv("src/language_processing/reverse_postings.csv")
-postings_df = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv")
+
+# postings_df_path = pd.read_csv("src/language_processing/csv/reverse_postings_alias_exact.csv")
+postings_df_path = os.path.join(current_dir, "csv", "reverse_postings_alias_exact.csv")
+postings_df = pd.read_csv(postings_df_path)
 postings_df = postings_df.drop_duplicates(subset="character")
 postings_df = postings_df.set_index("character")
 
