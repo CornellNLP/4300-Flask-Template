@@ -431,9 +431,11 @@ def query_character(query: str, vectorizer: TfidfVectorizer, tfidf_matrix, chara
     query_vec = vectorizer.transform([query])
     sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
     best_index = sims.argmax()
-    if query in characters:
+
+    query = query.lower()
+    alias_list_lower = [alias.lower() for alias in list_all_aliases]
+    if query in alias_list_lower:
         return query
-        # TODO: should check for aliases too. also, case sensitivity?
     else:
         return characters[best_index]
     # TODO: code doesn't use top_k yet
