@@ -397,7 +397,7 @@ def make_pickle():
     "characters": characters
 }, "data/model.pkl")
     
-make_pickle()
+# make_pickle()
 
 
 
