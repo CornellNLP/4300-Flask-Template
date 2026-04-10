@@ -10,15 +10,11 @@ def create_app():
     app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
 
     register_routes(app)
-
-    # Load data/models once at startup instead of during the first live request.
-    # This avoids request-time worker timeouts on /mealmap/meta and /mealmap/matches.
     try:
         print("MealMap: preloading models...", flush=True)
         ensure_models_loaded()
         print("MealMap: models loaded successfully.", flush=True)
     except Exception as exc:
-        # Let the app fail loudly in logs if startup loading breaks.
         print(f"MealMap startup error while loading models: {exc}", flush=True)
         raise
 
