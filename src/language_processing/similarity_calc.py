@@ -313,12 +313,35 @@ name_variants = {
     "Koza": ["Kohza"],
 }
 
+# input: dict mapping official name to list of aliases
+# output: dict mapping official name to list of alises including official name
+# context: one-time helper to make life easier for query_character
+def make_name_variants_inclusive(name_variants):
+    result = {}
+    for official, alias_list in name_variants.items():
+        inclusive_list = alias_list.copy()
+        inclusive_list.insert(0, official)
+        result[official] = inclusive_list
+    return result
+
+name_variants_inclusive = make_name_variants_inclusive(name_variants) 
+
+# convert inclusive name_variants to list of aliases
+# flatten list - credit to stackoverflow
+list_all_aliases_nested = list(name_variants_inclusive.values())
+list_all_aliases = [
+    alias
+    for nested_list in list_all_aliases_nested
+    for alias in nested_list
+]
+
 
 
 # !!! function copied from character_counts.py
 # fuzzy match query against all character names and aliases, return canonical name
 # intending to be used in routes.py
-def fuzzy_match_character(query: str, names_and_variants: dict[str, list[str]], threshold=100) -> str:
+# currently ununsed. not sure if we'll ever use this function.
+def fuzzy_match_character(query: str, names_and_variants: dict[str, list[str]], threshold=1) -> str:
     best_match = None
     best_distance = float('inf')
     query_lower = query.lower()
@@ -334,6 +357,20 @@ def fuzzy_match_character(query: str, names_and_variants: dict[str, list[str]], 
     if best_distance <= threshold:
         return best_match
     return ""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -378,6 +415,10 @@ def create_character_tfidf(character_docs: dict[str, str]):
 
 character_docs = build_character_docs()
 characters, vectorizer, tfidf_matrix = create_character_tfidf(character_docs)
+
+
+
+
 
 # input:
 #       - query string
