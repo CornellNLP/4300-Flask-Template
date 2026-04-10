@@ -28,9 +28,6 @@ def query_character(query):
     query_vec = vectorizer.transform([query])
     sims = cosine_similarity(query_vec, tfidf_matrix).flatten()
     return characters[sims.argmax()]
-
-
-
 # ... not sure what this function was for? anyways, it's outdated since it calls a
 # function that doesn't exist
 # def json_search(query):
