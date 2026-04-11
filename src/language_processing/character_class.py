@@ -63,6 +63,8 @@ class Comment:
 def create_comment(id, sim_score, comments_df):
     if id in comment_cache:
         return comment_cache[id]
+    if id not in comments_df.index:
+        return None
     row = comments_df.loc[id]
     if isinstance(row, pd.DataFrame):
         row = row.iloc[0]
@@ -91,7 +93,12 @@ def get_rating_over_time(charName, postings_df, comments_df):
         ids = ids.iloc[0]
     comment_ids = ids.split(",")
     #make list of comment objects using get_comment function then sort by timestamp
-    comments = sorted([create_comment(cid, 0, comments_df) for cid in comment_ids], key=lambda x: x.timestamp)
+    comments = sorted(
+    [
+        c for c in (create_comment(cid, 0, comments_df) for cid in comment_ids)
+        if c is not None
+    ],
+    key=lambda x: x.timestamp)
     ratings_over_time = []
     init_score = 100
     for comment in comments:
@@ -134,8 +141,8 @@ def create_character(name, postings_df, comments_df):
     if isinstance(ids, pd.Series):
         ids = ids.iloc[0]
     comment_ids = ids.split(",")
-    comment_list = [
-        create_comment(cid, 0, comments_df) for cid in comment_ids
+    comment_list = [ c for c in
+        (create_comment(cid, 0, comments_df) for cid in comment_ids) if c is not None
     ]
     ratings_over_time = get_rating_over_time(name, postings_df, comments_df)
     pos = sum(1 for c in comment_list if c.sentiment == "positive")
