@@ -116,7 +116,6 @@ class Character:
 def create_character(name):    
     comments = postings_df.loc[name, "comment_ids"].split(",")
         # list of comment ids mentioning [name]
-    # TODO: comments should not be precomputed and stored within the character class
 
     comment_list = []
     for comment in comments:

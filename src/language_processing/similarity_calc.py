@@ -1,5 +1,5 @@
 # file for similarity calculations and similar helper functions
-import os # TODO: SHOULD WE ADD THIS TO PIPINSTALL REQUIREMENTS?? -derek
+import os
 import numpy as np
 import pandas as pd
 import nltk
@@ -8,7 +8,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import joblib
 from datetime import datetime
-from rapidfuzz.distance import Levenshtein # REMIDNER TO ADD RAPIDFUZZ TO PIPINSTALL REQUIREMENTS
+from rapidfuzz.distance import Levenshtein
 
 
 
