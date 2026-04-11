@@ -18,23 +18,15 @@ from functools import lru_cache
 USE_LLM = False
 # USE_LLM = True
 # ───────────────
-<<<<<<< main-requirement
-_root_dir = Path(__file__).parent.parent
-data = joblib.load("data/model.pkl")
-=======
 
 current_dir = os.path.dirname(os.path.abspath(__file__)) #the path where routes.py lives
 model_path = os.path.join(current_dir, "language_processing", "data", "model.pkl")
 
 # data = joblib.load("data/model.pkl")
 data = joblib.load(model_path)
->>>>>>> main
 tfidf_matrix = data["matrix"]
 vectorizer = data["vectorizer"]
 characters = data["characters"]
-
-<<<<<<< main-requirement
-character_data = joblib.load(_root_dir / "data/character_data.pkl")
 
 # ===== One Piece GraphQL API Setup =====
 ONE_PIECE_API_URL = "https://onepieceql.com/api/graphql"
@@ -148,11 +140,9 @@ def get_character_image(character_name):
     print(f"⚠ No image found for {character_name}, using placeholder")
     return placeholder
 
-=======
 # character_data = joblib.load("data/character_data.pkl")
 character_data_path = os.path.join(current_dir, "language_processing", "data", "character_data.pkl")
 character_data = joblib.load(character_data_path)
->>>>>>> main
 
 # calculates similarity between query and character docs, returns best match's name
 def query_character(query):
