@@ -27,6 +27,7 @@ class Comment:
         self.user = user
         self.text = text
         self.sentiment = sentiment
+        #do we have this elsewhere when you set get comment
         self.rating = rating
         self.score = score
         self.timestamp = timestamp
@@ -49,10 +50,10 @@ def get_comment(id):
     controversiality = int(row['controversiality'])
 
     return Comment(
-        user='Pirate_Man22',
+        user=None,
         text=text,
         sentiment=sentiment,
-        rating=4.5,
+        rating=None,
         score=score,
         timestamp=timestamp,
         controversiality=controversiality
@@ -102,7 +103,7 @@ class Character:
         self.comments = comments if comments is not None else []
         self.total_comments = len(comments)
         #ask gabby what the difference was supposed to be... might be the ranked most relevant comments?
-        self.retrieved = comments if comments is not None else[]
+        self.retrieved = retrieved if retrieved is not None else[]
     
 
 def create_character(name):    
@@ -112,7 +113,16 @@ def create_character(name):
         comment_list.append(get_comment(comment))
     retrieved = comment_list[:5]
     ratings_over_time = get_rating_over_time(name)
-    summary = "This is a summary of the character."
+    pos = sum(1 for c in comment_list if c.sentiment == "positive")
+    neg = sum(1 for c in comment_list if c.sentiment == "negative")
+
+    if pos > neg:
+        summary = f"There is an overall positive sentiment with {pos} positive vs {neg} negative comments."
+    elif neg > pos:
+        summary = f"There is an overall negative sentiment with {neg} negative vs {pos} positive comments."
+    else:
+        summary = "We found that there is mixed sentiment from the community."
+
     sentiment_score = ratings_over_time[-1].rating
     sentiment = comment_list[-1].sentiment
     total_comments = len(comment_list)
