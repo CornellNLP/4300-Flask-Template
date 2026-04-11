@@ -175,8 +175,7 @@ def characters_to_dict(characters):
             "retrieved": [{"user": c.user, "text": c.text, "sentiment": c.sentiment, "rating": c.rating, "score": c.score, "timestamp": c.timestamp, "controversiality": c.controversiality} for c in character.retrieved]
         }
     return char_dict
-
 #print(create_all_characters())
-joblib.dump(characters_to_dict(create_all_characters(postings_df, comments_df)), "data/character_data.pkl")
+#joblib.dump(characters_to_dict(create_all_characters(postings_df, comments_df)), "data/character_data.pkl")
 
 
