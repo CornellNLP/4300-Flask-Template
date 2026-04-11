@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-import sent_anal
+from language_processing import sent_anal
 from datetime import datetime
 import joblib 
 # from src.language_processing import similarity_calc
@@ -177,6 +177,6 @@ def characters_to_dict(characters):
     return char_dict
 
 #print(create_all_characters())
-# joblib.dump(characters_to_dict(create_all_characters()), "data/character_data.pkl")
+joblib.dump(characters_to_dict(create_all_characters(postings_df, comments_df)), "data/character_data.pkl")
 
 

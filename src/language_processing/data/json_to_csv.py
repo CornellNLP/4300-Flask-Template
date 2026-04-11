@@ -49,7 +49,8 @@ with open("piratefolk_comments.csv", "w", newline="") as f:
                 comment_controversiality = comment.get('controversiality', 0)
 
                 cleaned_text = comment_text.replace('\n', ' ').replace('\r', ' ').replace('"', '')
-
+                if len(cleaned_text.split()) <= 1:
+                    continue
                 writer.writerow([comment_id, comment_timestamp, comment_score, comment_controversiality, cleaned_text])
 
     

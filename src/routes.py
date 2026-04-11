@@ -29,6 +29,7 @@ tfidf_matrix = data["matrix"]
 vectorizer = data["vectorizer"]
 characters = data["characters"]
 
+comments_df, postings_df = character_class.load_data()
 # ===== One Piece GraphQL API Setup =====
 ONE_PIECE_API_URL = "https://onepieceql.com/api/graphql"
 _api_cache = {}  # Cache for API data
@@ -201,7 +202,7 @@ def register_routes(app):
 
         comment_list = [] # list of relevant Comment objects, where "Comment" defined in character_class.py
         for (id, score) in relevant_comments:
-            comment_list.append(character_class.create_comment(id, score))
+            comment_list.append(character_class.create_comment(id, score, comments_df))
 
         return json.dumps({
             "character": result, # string of most similar character to query
