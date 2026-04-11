@@ -2,7 +2,7 @@ import json
 import os
 import csv
 from pathlib import Path
-
+import re
 
 def json_to_csv1():
     with open("data_set.csv", "w") as f:
@@ -48,8 +48,10 @@ with open("piratefolk_comments.csv", "w", newline="") as f:
                 comment_score = comment.get('score', 0)
                 comment_controversiality = comment.get('controversiality', 0)
 
-                cleaned_text = comment_text.replace('\n', ' ').replace('\r', ' ').replace('"', '')
-                if len(cleaned_text.split()) <= 1:
+                cleaned_text = comment_text.replace('\n', ' ').replace('\r', ' ').replace('"', '').strip()
+                words = re.findall(r'\b\w+\b', cleaned_text)
+
+                if len(words) <= 1:
                     continue
                 writer.writerow([comment_id, comment_timestamp, comment_score, comment_controversiality, cleaned_text])
 
