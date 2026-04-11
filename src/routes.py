@@ -196,7 +196,7 @@ def register_routes(app):
             comment_term_tfidf_matrix = similarity_calc.comment_term_tfidf_matrix,
             ids = similarity_calc.comment_ids,
             texts = similarity_calc.texts,
-            k = 25
+            k = 10
         ) # should return list of tuples of form (id, sim_score)
 
         comment_list = [] # list of relevant Comment objects, where "Comment" defined in character_class.py

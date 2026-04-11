@@ -434,7 +434,7 @@ def query_character(query: str, vectorizer: TfidfVectorizer, tfidf_matrix, chara
 
     query = query.lower()
     alias_list_lower = [alias.lower() for alias in list_all_aliases]
-    if query in alias_list_lower:
+    if query in characters:
         return query
     else:
         return characters[best_index]
@@ -494,6 +494,10 @@ def retrieve_k_sim_comments(query, vectorizer, comment_term_tfidf_matrix, ids, t
         rankings.append((ids[i], similarities[i]))
     
     return rankings
+
+
+
+
 
 
 
