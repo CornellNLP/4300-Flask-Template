@@ -90,7 +90,7 @@ def get_rating_over_time(charName, postings_df, comments_df):
         #neutral does not change the score
         #print(f"Date: {date}, Sentiment: {sentiment}, Rating: {rating}")
         ratings_over_time.append(Rating(datetime.fromtimestamp(comment.timestamp), init_score, comment.sentiment))
-    return sorted(ratings_over_time)
+    return sorted(ratings_over_time, key=lambda r: r.date)
 #get_rating_over_time("Jika")
 
 class Character:
