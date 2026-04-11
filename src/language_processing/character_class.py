@@ -18,9 +18,21 @@ def load_data():
         os.path.join(current_dir, "data", "piratefolk_comments.csv")
     ).set_index("id")
 
+    def is_valid(text):
+        words = re.findall(r'\b\w+\b', str(text))
+        return len(words) > 1
+
+    comments_df = comments_df[comments_df["text"].apply(is_valid)]
+
     postings_df = pd.read_csv(
         os.path.join(current_dir, "csv", "reverse_postings_alias_exact.csv")
     ).drop_duplicates(subset="character").set_index("character")
+
+    valid_ids = set(comments_df.index)
+
+    postings_df["comment_ids"] = postings_df["comment_ids"].apply(
+        lambda x: ",".join(cid for cid in x.split(",") if cid in valid_ids)
+    )
 
     return comments_df, postings_df
 
