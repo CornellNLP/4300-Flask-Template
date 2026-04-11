@@ -142,8 +142,26 @@ def get_character_image(character_name):
     print(f"⚠ No image found for {character_name}, using placeholder")
     return placeholder
 
-# character_data = joblib.load("data/character_data.pkl")
+# Auto-generate character_data.pkl if it doesn't exist
 character_data_path = os.path.join(current_dir, "language_processing", "data", "character_data.pkl")
+
+def ensure_character_data_exists():
+    """Generate character_data.pkl if it doesn't exist."""
+    if not os.path.exists(character_data_path):
+        print("🔄 Generating character_data.pkl...")
+        try:
+            characters = character_class.create_all_characters(postings_df, comments_df)
+            char_dict = character_class.characters_to_dict(characters)
+            joblib.dump(char_dict, character_data_path)
+            print(f"✅ Successfully generated character_data.pkl with {len(char_dict)} characters")
+            return char_dict
+        except Exception as e:
+            print(f"❌ Error generating character_data.pkl: {e}")
+            raise
+    return None
+
+# Ensure character data exists before loading
+ensure_character_data_exists()
 character_data = joblib.load(character_data_path)
 
 # calculates similarity between query and character docs, returns best match's name
