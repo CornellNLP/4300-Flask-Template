@@ -196,7 +196,8 @@ def characters_to_dict(characters):
             "currentRating": character.sentiment_score,
             "summary": character.summary,
             #ratings as a list of dicts
-            "ratings_over_time": [(r.date.timestamp(), r.rating) for r in character.ratings_over_time],
+            # "ratings_over_time": [(r.date.timestamp(), r.rating) for r in character.ratings_over_time],
+            "ratings_over_time": [{"date": r.date.timestamp(), "rating": r.rating, "sentiment": r.sentiment} for r in character.ratings_over_time],
             #comments as a list of dicts
             "comments": [{"user": c.user, "text": c.text, "sentiment": c.sentiment, "rating": c.rating, "score": c.score, "timestamp": c.timestamp, "controversiality": c.controversiality} for c in character.comments],
             #retrieved as a list of dicts
@@ -204,6 +205,7 @@ def characters_to_dict(characters):
         }
     return char_dict
 #print(create_all_characters())
-#joblib.dump(characters_to_dict(create_all_characters(postings_df, comments_df)), "data/character_data.pkl")
+# comments_df, postings_df = load_data()
+# joblib.dump(characters_to_dict(create_all_characters(postings_df, comments_df)), "src/language_processing/data/character_data.pkl")
 
 
