@@ -89,9 +89,11 @@ def create_comment(id, sim_score, comments_df):
 def get_rating_over_time(charName, postings_df, comments_df):
     #get all comments for the character, then create a list of ratings over time
     ids = postings_df.loc[charName, "comment_ids"]
-    if isinstance(ids, pd.Series):
-        ids = ids.iloc[0]
-    comment_ids = ids.split(",")
+
+    if not isinstance(ids, str) or not ids.strip():
+        return []
+    comment_ids = [cid for cid in ids.split(",") if cid.strip()]
+    
     #make list of comment objects using get_comment function then sort by timestamp
     comments = sorted(
     [
@@ -138,9 +140,15 @@ class Character:
 def create_character(name, postings_df, comments_df):
    # list of comment ids mentioning [name]  
     ids = postings_df.loc[name, "comment_ids"]
+
     if isinstance(ids, pd.Series):
         ids = ids.iloc[0]
-    comment_ids = ids.split(",")
+
+    if not isinstance(ids, str) or not ids.strip():
+        comment_ids = []
+    else:
+        comment_ids = [cid for cid in ids.split(",") if cid.strip()]
+
     comment_list = [ c for c in
         (create_comment(cid, 0, comments_df) for cid in comment_ids) if c is not None
     ]
