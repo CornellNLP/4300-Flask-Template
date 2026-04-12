@@ -220,7 +220,9 @@ def register_routes(app):
 
         comment_list = [] # list of relevant Comment objects, where "Comment" defined in character_class.py
         for (id, score) in relevant_comments:
-            comment_list.append(character_class.create_comment(id, score, comments_df))
+            c = character_class.create_comment(id, score, comments_df)
+            if c is not None:
+                comment_list.append(c)
 
         return json.dumps({
             "character": result, # string of most similar character to query
