@@ -5,6 +5,9 @@ let selectedFood = "";
 let currentModel = "tfidf";
 let autocompleteTimer = null;
 
+// tracks titles currently in the meal plan
+let planTitles = new Set();
+
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
 const clearFiltersButton = document.getElementById("clearFiltersButton");
@@ -21,6 +24,17 @@ const recipeModal = document.getElementById("recipeModal");
 const modalBackdrop = document.getElementById("modalBackdrop");
 const closeModalButton = document.getElementById("closeModalButton");
 const modalBody = document.getElementById("modalBody");
+
+const mealPlanBtn = document.getElementById("mealPlanBtn");
+const planBadge = document.getElementById("planBadge");
+const mealPlanDrawer = document.getElementById("mealPlanDrawer");
+const drawerBackdrop = document.getElementById("drawerBackdrop");
+const closeDrawerBtn = document.getElementById("closeDrawerBtn");
+const drawerBody = document.getElementById("drawerBody");
+const drawerFooter = document.getElementById("drawerFooter");
+const drawerSubtitle = document.getElementById("drawerSubtitle");
+
+// ── Utilities ────────────────────────────────────────────────────────────────
 
 function setStatus(message, isError = false) {
   statusMessage.textContent = message;
@@ -61,6 +75,8 @@ function normalizeList(value) {
     .map((item) => item.trim())
     .filter(Boolean);
 }
+
+// ── Search UI ─────────────────────────────────────────────────────────────────
 
 function updateActiveState() {
   const pieces = [];
@@ -133,6 +149,8 @@ function renderMatchDropdown(matches) {
   });
 }
 
+// ── Recipe cards ──────────────────────────────────────────────────────────────
+
 function recipeCard(recipe, index) {
   const title = recipe.title || "Untitled Recipe";
   return `
@@ -186,6 +204,8 @@ function renderRecipes(recipes) {
   });
 }
 
+// ── Recipe modal ──────────────────────────────────────────────────────────────
+
 function listMarkup(items, ordered = false) {
   const cleanItems = normalizeList(items);
   if (!cleanItems.length) return `<p class="empty-copy">Not available.</p>`;
@@ -196,13 +216,17 @@ function listMarkup(items, ordered = false) {
 function openRecipeModal(recipe) {
   if (!recipe) return;
 
+  const isAdded = planTitles.has(recipe.title || "");
+  const addBtnLabel = isAdded ? "✓ Added to Plan" : "+ Add to Plan";
+
   modalBody.innerHTML = `
     <div class="modal-header">
       <p class="modal-kicker">${recipe.diet ? escapeHtml(niceDietLabel(recipe.diet)) : "MealMap Recipe"}</p>
       <h2 class="modal-title">${escapeHtml(recipe.title || "Untitled Recipe")}</h2>
-      <div class="meta-row">
+      <div class="meta-row" style="margin-bottom:16px;">
         ${recipe.diet ? `<span class="badge accent">${escapeHtml(niceDietLabel(recipe.diet))}</span>` : ""}
         <span class="badge">${displayValue(recipe.servings)} servings</span>
+        <button class="add-to-plan-btn${isAdded ? " added" : ""}" id="modalAddToPlanBtn" type="button">${addBtnLabel}</button>
       </div>
     </div>
 
@@ -234,6 +258,10 @@ function openRecipeModal(recipe) {
     }
   `;
 
+  document.getElementById("modalAddToPlanBtn").addEventListener("click", () => {
+    addToPlan(recipe);
+  });
+
   recipeModal.classList.remove("hidden");
   recipeModal.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
@@ -245,11 +273,185 @@ function closeRecipeModal() {
   document.body.classList.remove("modal-open");
 }
 
+// ── Meal plan drawer ──────────────────────────────────────────────────────────
+
+function updatePlanBadge() {
+  const count = planTitles.size;
+  planBadge.textContent = count;
+  planBadge.classList.toggle("hidden", count === 0);
+}
+
+function openDrawer() {
+  mealPlanDrawer.classList.remove("hidden");
+  mealPlanDrawer.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+  renderPlanView();
+}
+
+function closeDrawer() {
+  mealPlanDrawer.classList.add("hidden");
+  mealPlanDrawer.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+}
+
+function renderPlanView() {
+  fetch("/mealplan")
+    .then((r) => r.json())
+    .then(({ plan }) => {
+      planTitles = new Set(plan.map((r) => r.title));
+      updatePlanBadge();
+      drawerSubtitle.textContent = plan.length
+        ? `${plan.length} recipe${plan.length === 1 ? "" : "s"}`
+        : "";
+
+      if (!plan.length) {
+        drawerBody.innerHTML = `
+          <div class="drawer-empty">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1"/>
+              <line x1="9" y1="12" x2="15" y2="12"/>
+            </svg>
+            <p>No recipes yet. Open a recipe and click "Add to Plan".</p>
+          </div>
+        `;
+        drawerFooter.innerHTML = "";
+        return;
+      }
+
+      drawerBody.innerHTML = plan
+        .map(
+          (r) => `
+          <div class="plan-item">
+            <div class="plan-item-info">
+              <div class="plan-item-title">${escapeHtml(r.title)}</div>
+              <div class="plan-item-meta">${r.ingredients.length} ingredient${r.ingredients.length === 1 ? "" : "s"}${r.servings ? ` · ${escapeHtml(String(r.servings))} servings` : ""}</div>
+            </div>
+            <button class="remove-plan-btn" data-title="${escapeHtml(r.title)}" title="Remove">&times;</button>
+          </div>
+        `
+        )
+        .join("");
+
+      document.querySelectorAll(".remove-plan-btn").forEach((btn) => {
+        btn.addEventListener("click", () => removeFromPlan(btn.dataset.title));
+      });
+
+      drawerFooter.innerHTML = `
+        <button class="full-width-btn" id="getShoppingListBtn">Get Shopping List</button>
+        <button class="full-width-btn secondary" id="clearPlanBtn">Clear Plan</button>
+      `;
+
+      document.getElementById("getShoppingListBtn").addEventListener("click", renderShoppingList);
+      document.getElementById("clearPlanBtn").addEventListener("click", clearPlan);
+    });
+}
+
+function renderShoppingList() {
+  fetch("/mealplan/shopping-list")
+    .then((r) => r.json())
+    .then(({ items, recipe_count }) => {
+      drawerSubtitle.textContent = `${recipe_count} recipe${recipe_count === 1 ? "" : "s"}`;
+
+      drawerBody.innerHTML = `
+        <button class="shopping-back-btn" id="backToPlanBtn">← Back to plan</button>
+        <p class="shopping-section-label">${items.length} item${items.length === 1 ? "" : "s"}</p>
+        ${
+          items.length
+            ? items
+                .map(
+                  (item, i) => `
+                  <div class="shopping-item" id="si-${i}">
+                    <input type="checkbox" id="cb-${i}" />
+                    <label for="cb-${i}">${escapeHtml(item)}</label>
+                  </div>
+                `
+                )
+                .join("")
+            : `<p style="color:var(--muted);font-size:14px;">No ingredients found.</p>`
+        }
+      `;
+
+      // toggle strikethrough on check
+      document.querySelectorAll(".shopping-item input").forEach((cb) => {
+        cb.addEventListener("change", () => {
+          cb.closest(".shopping-item").classList.toggle("checked", cb.checked);
+        });
+      });
+
+      document.getElementById("backToPlanBtn").addEventListener("click", renderPlanView);
+
+      drawerFooter.innerHTML = `
+        <button class="full-width-btn secondary" id="copyListBtn">Copy to clipboard</button>
+      `;
+
+      document.getElementById("copyListBtn").addEventListener("click", () => {
+        navigator.clipboard.writeText(items.join("\n")).then(() => {
+          const btn = document.getElementById("copyListBtn");
+          btn.textContent = "Copied!";
+          setTimeout(() => { btn.textContent = "Copy to clipboard"; }, 2000);
+        });
+      });
+    });
+}
+
+// ── Meal plan actions ─────────────────────────────────────────────────────────
+
+async function addToPlan(recipe) {
+  const btn = document.getElementById("modalAddToPlanBtn");
+  if (!btn) return;
+
+  const res = await fetch("/mealplan/add", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: recipe.title,
+      ingredients: normalizeList(recipe.ingredients),
+      servings: recipe.servings || "",
+    }),
+  });
+  const data = await res.json();
+
+  planTitles = new Set(data.plan.map((r) => r.title));
+  updatePlanBadge();
+
+  btn.textContent = "✓ Added to Plan";
+  btn.classList.add("added");
+}
+
+async function removeFromPlan(title) {
+  const res = await fetch("/mealplan/remove", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  const data = await res.json();
+  planTitles = new Set(data.plan.map((r) => r.title));
+  updatePlanBadge();
+  renderPlanView();
+}
+
+async function clearPlan() {
+  const plan = await fetch("/mealplan").then((r) => r.json()).then((d) => d.plan);
+  for (const recipe of plan) {
+    await fetch("/mealplan/remove", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: recipe.title }),
+    });
+  }
+  planTitles.clear();
+  updatePlanBadge();
+  renderPlanView();
+}
+
+// ── Data fetching ─────────────────────────────────────────────────────────────
+
 async function fetchMeta() {
   try {
     const response = await fetch("/mealmap/meta");
     const data = await response.json();
-    currentModel = data.default_retrieval_model || "svd";
+    currentModel = data.default_retrieval_model || "tfidf";
     modelSelect.value = currentModel;
     metaPills.innerHTML = `
       <span class="state-pill">${escapeHtml(data.dataset_size)} recipes</span>
@@ -269,7 +471,7 @@ async function fetchMatchSuggestions(query) {
     return;
   }
 
-  currentModel = modelSelect.value || "svd";
+  currentModel = modelSelect.value || "tfidf";
 
   try {
     const response = await fetch(
@@ -285,7 +487,7 @@ async function fetchMatchSuggestions(query) {
 
 async function fetchRecommendations(selected) {
   selectedFood = selected;
-  currentModel = modelSelect.value || "svd";
+  currentModel = modelSelect.value || "tfidf";
   updateActiveState();
   updateResultsTitle("Recipes");
   recipesGrid.innerHTML = "";
@@ -303,6 +505,8 @@ async function fetchRecommendations(selected) {
     setStatus("Could not load recipes.", true);
   }
 }
+
+// ── Event listeners ───────────────────────────────────────────────────────────
 
 searchButton.addEventListener("click", () => {
   if (currentMatches.length) {
@@ -369,7 +573,7 @@ searchInput.addEventListener("keydown", (event) => {
 });
 
 modelSelect.addEventListener("change", () => {
-  currentModel = modelSelect.value || "svd";
+  currentModel = modelSelect.value || "tfidf";
   updateActiveState();
 
   const query = searchInput.value.trim();
@@ -421,9 +625,14 @@ clearFiltersButton.addEventListener("click", () => {
 closeModalButton.addEventListener("click", closeRecipeModal);
 modalBackdrop.addEventListener("click", closeRecipeModal);
 
+mealPlanBtn.addEventListener("click", openDrawer);
+closeDrawerBtn.addEventListener("click", closeDrawer);
+drawerBackdrop.addEventListener("click", closeDrawer);
+
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !recipeModal.classList.contains("hidden")) {
-    closeRecipeModal();
+  if (event.key === "Escape") {
+    if (!recipeModal.classList.contains("hidden")) closeRecipeModal();
+    else if (!mealPlanDrawer.classList.contains("hidden")) closeDrawer();
   }
 });
 
@@ -437,6 +646,15 @@ document.addEventListener("click", (event) => {
     hideMatchDropdown();
   }
 });
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+fetch("/mealplan")
+  .then((r) => r.json())
+  .then(({ plan }) => {
+    planTitles = new Set(plan.map((r) => r.title));
+    updatePlanBadge();
+  });
 
 fetchMeta();
 updateActiveState();
