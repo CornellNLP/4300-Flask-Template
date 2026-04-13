@@ -16,7 +16,14 @@
           <p class="subtitle">Find recipes that match your nutrition goals. &middot; <span style="opacity:0.6;">CS 4300</span></p>
         </div>
       </div>
-      <div id="metaPills" class="meta-pills"></div>
+      <div class="topbar-right">
+        <div id="metaPills" class="meta-pills"></div>
+        <button id="mealPlanBtn" class="meal-plan-btn" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          Meal Plan
+          <span id="planBadge" class="plan-badge hidden">0</span>
+        </button>
+      </div>
     </header>
 
     <main class="layout">
@@ -76,11 +83,28 @@
     </main>
   </div>
 
+  <!-- Recipe modal -->
   <div id="recipeModal" class="modal hidden" aria-hidden="true">
     <div class="modal-backdrop" id="modalBackdrop"></div>
     <div class="modal-content">
       <button id="closeModalButton" class="close-modal" aria-label="Close">&times;</button>
       <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Meal plan drawer -->
+  <div id="mealPlanDrawer" class="drawer hidden" aria-hidden="true">
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+    <div class="drawer-panel">
+      <div class="drawer-header">
+        <div id="drawerTitle">
+          <h2>Meal Plan</h2>
+          <p id="drawerSubtitle" class="drawer-subtitle"></p>
+        </div>
+        <button id="closeDrawerBtn" class="close-drawer" aria-label="Close">&times;</button>
+      </div>
+      <div id="drawerBody" class="drawer-body"></div>
+      <div id="drawerFooter" class="drawer-footer"></div>
     </div>
   </div>
 
