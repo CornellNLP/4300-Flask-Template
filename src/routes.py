@@ -4,7 +4,7 @@ import re
 
 import numpy as np
 import pandas as pd
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -556,6 +556,56 @@ def recommend():
     ranked = profile_sort(candidates, profile).head(RECOMMEND_LIMIT)
     payload = [build_payload(row, profile) for _, row in ranked.iterrows()]
     return jsonify({"recipes": payload})
+
+
+@bp.post("/mealplan/add")
+def mealplan_add():
+    data = request.get_json() or {}
+    title = (data.get("title") or "").strip()
+    if not title:
+        return jsonify({"error": "Missing title"}), 400
+
+    plan = session.get("meal_plan", [])
+    if any(r["title"] == title for r in plan):
+        return jsonify({"plan": plan, "already_added": True})
+
+    plan.append({
+        "title": title,
+        "ingredients": data.get("ingredients", []),
+        "servings": data.get("servings", ""),
+    })
+    session["meal_plan"] = plan
+    session.modified = True
+    return jsonify({"plan": plan})
+
+
+@bp.post("/mealplan/remove")
+def mealplan_remove():
+    data = request.get_json() or {}
+    title = (data.get("title") or "").strip()
+    plan = [r for r in session.get("meal_plan", []) if r["title"] != title]
+    session["meal_plan"] = plan
+    session.modified = True
+    return jsonify({"plan": plan})
+
+
+@bp.get("/mealplan")
+def mealplan_get():
+    return jsonify({"plan": session.get("meal_plan", [])})
+
+
+@bp.get("/mealplan/shopping-list")
+def mealplan_shopping_list():
+    plan = session.get("meal_plan", [])
+    seen = set()
+    items = []
+    for recipe in plan:
+        for ingredient in recipe.get("ingredients", []):
+            clean = ingredient.strip()
+            if clean and clean.lower() not in seen:
+                seen.add(clean.lower())
+                items.append(clean)
+    return jsonify({"items": items, "recipe_count": len(plan)})
 
 
 def register_routes(app):

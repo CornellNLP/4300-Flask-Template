@@ -8,6 +8,7 @@ def create_app():
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config["JSON_SORT_KEYS"] = False
     app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
+    app.secret_key = os.environ.get("SECRET_KEY", "mealmap-dev-secret")
 
     register_routes(app)
     try:
