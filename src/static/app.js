@@ -64,10 +64,13 @@ function normalizeList(value) {
 
 function updateActiveState() {
   const pieces = [];
-  if (selectedFood) pieces.push(`Query: ${selectedFood}`);
-  pieces.push(`Model: ${niceModelLabel(currentModel)}`);
-  if (currentDiet) pieces.push(`Goal: ${niceDietLabel(currentDiet)}`);
-  activeState.innerHTML = pieces.map((piece) => `<span class="state-pill">${escapeHtml(piece)}</span>`).join("");
+  if (selectedFood) pieces.push({ text: selectedFood, highlight: true });
+  if (currentDiet) pieces.push({ text: niceDietLabel(currentDiet), highlight: false });
+  activeState.innerHTML = pieces
+    .map(({ text, highlight }) =>
+      `<span class="state-pill${highlight ? " highlight" : ""}">${escapeHtml(text)}</span>`
+    )
+    .join("");
 }
 
 function updateResultsTitle(prefix = "Results") {
@@ -77,6 +80,7 @@ function updateResultsTitle(prefix = "Results") {
   }
   resultsTitle.textContent = `${prefix} for "${selectedFood}"`;
 }
+
 function hideMatchDropdown() {
   currentMatches = [];
   matchDropdown.innerHTML = "";
@@ -86,6 +90,7 @@ function hideMatchDropdown() {
 function showMatchDropdown() {
   matchDropdown.classList.remove("hidden");
 }
+
 function renderMatchDropdown(matches) {
   currentMatches = matches || [];
 
@@ -133,17 +138,10 @@ function recipeCard(recipe, index) {
   return `
     <article class="card clickable-card" data-index="${index}" role="button" tabindex="0">
       <div class="card-top">
-        <div>
-          <h3>${escapeHtml(title)}</h3>
-          <div class="meta-row">
-            <span class="badge">Similarity ${displayValue(recipe.similarity_score, "%")}</span>
-            <span class="badge">${escapeHtml(niceModelLabel(recipe.retrieval_method || currentModel))}</span>
-            <span class="badge">Model ${displayValue(recipe.model_score, "%")}</span>
-            <span class="badge">TF-IDF ${displayValue(recipe.tfidf_score, "%")}</span>
-            <span class="badge">Servings ${displayValue(recipe.servings)}</span>
-            <span class="badge">${escapeHtml(recipe.nutrition_status || "Nutrition info")}</span>
-            ${recipe.diet ? `<span class="badge accent">${escapeHtml(niceDietLabel(recipe.diet))}</span>` : ""}
-          </div>
+        <h3>${escapeHtml(title)}</h3>
+        <div class="meta-row">
+          ${recipe.diet ? `<span class="badge accent">${escapeHtml(niceDietLabel(recipe.diet))}</span>` : ""}
+          <span class="badge">${displayValue(recipe.servings)} servings</span>
         </div>
       </div>
 
@@ -156,7 +154,7 @@ function recipeCard(recipe, index) {
         <div class="nutrition-box"><div class="label">Sodium</div><div class="value">${displayValue(recipe.sodium_mg, " mg")}</div></div>
       </div>
 
-      <p class="open-hint">Open full recipe</p>
+      <p class="open-hint">View recipe</p>
     </article>
   `;
 }
@@ -188,7 +186,6 @@ function renderRecipes(recipes) {
   });
 }
 
-
 function listMarkup(items, ordered = false) {
   const cleanItems = normalizeList(items);
   if (!cleanItems.length) return `<p class="empty-copy">Not available.</p>`;
@@ -204,12 +201,8 @@ function openRecipeModal(recipe) {
       <p class="modal-kicker">${recipe.diet ? escapeHtml(niceDietLabel(recipe.diet)) : "MealMap Recipe"}</p>
       <h2 class="modal-title">${escapeHtml(recipe.title || "Untitled Recipe")}</h2>
       <div class="meta-row">
-        <span class="badge">Similarity ${displayValue(recipe.similarity_score, "%")}</span>
-        <span class="badge">${escapeHtml(niceModelLabel(recipe.retrieval_method || currentModel))}</span>
-        <span class="badge">Model ${displayValue(recipe.model_score, "%")}</span>
-        <span class="badge">TF-IDF ${displayValue(recipe.tfidf_score, "%")}</span>
-        <span class="badge">Servings ${displayValue(recipe.servings)}</span>
-        <span class="badge">${escapeHtml(recipe.nutrition_status || "Nutrition info")}</span>
+        ${recipe.diet ? `<span class="badge accent">${escapeHtml(niceDietLabel(recipe.diet))}</span>` : ""}
+        <span class="badge">${displayValue(recipe.servings)} servings</span>
       </div>
     </div>
 
@@ -235,7 +228,7 @@ function openRecipeModal(recipe) {
     ${
       recipe.link
         ? `<section class="modal-section">
-             <a class="recipe-link" href="${escapeHtml(recipe.link)}" target="_blank" rel="noopener noreferrer">Open original recipe source</a>
+             <a class="recipe-link" href="${escapeHtml(/^https?:\/\//i.test(recipe.link) ? recipe.link : "https://" + recipe.link)}" target="_blank" rel="noopener noreferrer">Open original recipe source</a>
            </section>`
         : ""
     }
@@ -259,10 +252,8 @@ async function fetchMeta() {
     currentModel = data.default_retrieval_model || "svd";
     modelSelect.value = currentModel;
     metaPills.innerHTML = `
-      <span class="state-pill">Recipes: ${escapeHtml(data.dataset_size)}</span>
-      <span class="state-pill">Nutrition coverage: ${escapeHtml(data.nutrition_coverage)}%</span>
-      <span class="state-pill">SVD comps: ${escapeHtml(data.svd_components)}</span>
-      <span class="state-pill">Variance: ${escapeHtml(data.svd_explained_variance)}%</span>
+      <span class="state-pill">${escapeHtml(data.dataset_size)} recipes</span>
+      <span class="state-pill">${escapeHtml(data.nutrition_coverage)}% with nutrition data</span>
     `;
     updateActiveState();
   } catch {
