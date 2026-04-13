@@ -17,7 +17,7 @@ DATA_PATH = BASE_DIR / "data" / "recipes_enriched.csv"
 
 SEARCH_LIMIT = 12
 RECOMMEND_LIMIT = 24
-DEFAULT_MODEL = "svd"
+DEFAULT_MODEL = "tfidf"
 
 DF = None
 

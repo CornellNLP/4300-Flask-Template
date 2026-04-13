@@ -2,7 +2,7 @@ let currentDiet = "";
 let currentRecipes = [];
 let currentMatches = [];
 let selectedFood = "";
-let currentModel = "svd";
+let currentModel = "tfidf";
 let autocompleteTimer = null;
 
 const searchInput = document.getElementById("searchInput");
