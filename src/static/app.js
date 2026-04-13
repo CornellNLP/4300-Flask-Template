@@ -228,7 +228,7 @@ function openRecipeModal(recipe) {
     ${
       recipe.link
         ? `<section class="modal-section">
-             <a class="recipe-link" href="${escapeHtml(/^https?:\/\//i.test(recipe.link) ? recipe.link : "https://" + recipe.link)}" target="_blank" rel="noopener noreferrer">Open original recipe source</a>
+             <a class="recipe-link" href="${escapeHtml(/^https?:\/\//i.test(recipe.link) ? recipe.link : "https://" + recipe.link.replace(/^www\./, ""))}" target="_blank" rel="noopener noreferrer">Open original recipe source</a>
            </section>`
         : ""
     }
