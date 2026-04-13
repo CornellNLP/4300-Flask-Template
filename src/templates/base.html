@@ -10,11 +10,11 @@
   <div class="page-shell">
     <header class="topbar">
       <div class="brand-block">
-        <p class="eyebrow">CS 4300 Project</p>
-        <h1>MealMap</h1>
-        <p class="subtitle">
-          Search with TF-IDF or SVD, choose the closest dish, then re-rank it by your nutrition goal.
-        </p>
+        <div class="brand-icon">🍽️</div>
+        <div class="brand-text">
+          <h1>MealMap</h1>
+          <p class="subtitle">Find recipes that match your nutrition goals.</p>
+        </div>
       </div>
       <div id="metaPills" class="meta-pills"></div>
     </header>
@@ -22,27 +22,27 @@
     <main class="layout">
       <section class="panel search-panel">
         <div class="search-card">
-          <label class="section-label" for="searchInput">Search for a food or dish</label>
+          <label class="section-label" for="searchInput">Search for a dish</label>
           <div class="search-autocomplete-wrap">
             <div class="search-row">
-              <input id="searchInput" type="text" placeholder="ex: chicken alfredo, turkey chili, veggie pasta" autocomplete="off" />
+              <input id="searchInput" type="text" placeholder="e.g. chicken alfredo, veggie pasta…" autocomplete="off" />
               <button id="searchButton" type="button">Search</button>
             </div>
             <div id="matchDropdown" class="match-dropdown hidden"></div>
           </div>
 
-          <div style="margin-bottom: 18px;">
-            <label class="section-label" for="modelSelect">Retrieval model</label>
-            <select id="modelSelect" style="width: 100%; padding: 14px 15px; border-radius: 14px; border: 1px solid #dbe4ee; background: #fff;">
-              <option value="svd">SVD semantic search</option>
-              <option value="tfidf">TF-IDF lexical search</option>
+          <div class="model-select-wrap">
+            <label class="section-label" for="modelSelect">Search method</label>
+            <select id="modelSelect" class="model-select">
+              <option value="svd">SVD — semantic search</option>
+              <option value="tfidf">TF-IDF — keyword search</option>
             </select>
           </div>
 
           <div class="filters-header">
             <div>
               <p class="filters-title">Nutrition goal</p>
-              <p class="filters-subtitle">Pick one to re-rank the recipes.</p>
+              <p class="filters-subtitle">Pick one to re-rank results.</p>
             </div>
             <button id="clearFiltersButton" class="ghost-btn" type="button">Clear</button>
           </div>
@@ -79,7 +79,7 @@
   <div id="recipeModal" class="modal hidden" aria-hidden="true">
     <div class="modal-backdrop" id="modalBackdrop"></div>
     <div class="modal-content">
-      <button id="closeModalButton" class="close-modal" aria-label="Close modal">&times;</button>
+      <button id="closeModalButton" class="close-modal" aria-label="Close">&times;</button>
       <div id="modalBody"></div>
     </div>
   </div>
