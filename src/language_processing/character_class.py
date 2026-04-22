@@ -4,7 +4,7 @@ from language_processing import sent_anal
 from datetime import datetime
 import re
 import joblib 
-from rag import generate_character_summary
+from language_processing.git rag import generate_character_summary
 # from src.language_processing import similarity_calc
 
 #To speed up multiple calls of the functions.

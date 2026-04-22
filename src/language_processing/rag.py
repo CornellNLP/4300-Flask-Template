@@ -48,7 +48,8 @@ def generate_character_summary(character):
     {context}
     """
 
-    client = LLMClient(api_key=os.env("SPARK_API_KEY"))
+    client = LLMClient(api_key=os.
+                       env("SPARK_API_KEY"))
 
     messages = [
         {"role": "system", "content": "You summarize community sentiment clearly and briefly."},
