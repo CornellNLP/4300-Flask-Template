@@ -14,10 +14,11 @@ from language_processing import similarity_calc
 import requests
 from functools import lru_cache
 from language_processing import character_class
+from language_processing.rag import rag_answer
 
 # ── AI toggle ──
-USE_LLM = False
-# USE_LLM = True
+#USE_LLM = False
+USE_LLM = True
 # ───────────────
 
 current_dir = os.path.dirname(os.path.abspath(__file__)) #the path where routes.py lives
@@ -224,9 +225,19 @@ def register_routes(app):
             if c is not None:
                 comment_list.append(c)
 
+        # RAG for character class
+
+        rag_output = ""
+        try:
+            rag_output = rag_answer(query, comment_list)
+        except Exception as e:
+            print(f"RAG error: {e}")
+            rag_output = "LLM summary unavailable."
+
         return json.dumps({
             "character": result, # string of most similar character to query
-            "relevant_comments": [{"user": c.user, "text": c.text, "sentiment": c.sentiment, "rating": c.rating, "score": c.score, "timestamp": c.timestamp, "controversiality": c.controversiality, "sim_score": c.sim_score} for c in comment_list]
+            "relevant_comments": [{"user": c.user, "text": c.text, "sentiment": c.sentiment, "rating": c.rating, "score": c.score, "timestamp": c.timestamp, "controversiality": c.controversiality, "sim_score": c.sim_score} for c in comment_list],
+            "rag_answer": rag_output
         })
     
     @app.route("/csearch")

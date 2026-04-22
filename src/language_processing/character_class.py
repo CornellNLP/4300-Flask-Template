@@ -4,6 +4,7 @@ from language_processing import sent_anal
 from datetime import datetime
 import re
 import joblib 
+from rag import generate_character_summary
 # from src.language_processing import similarity_calc
 
 #To speed up multiple calls of the functions.
@@ -137,8 +138,9 @@ class Character:
         self.retrieved = retrieved if retrieved is not None else[]
     
 
-def create_character(name, postings_df, comments_df):
-   # list of comment ids mentioning [name]  
+from rag import generate_character_summary  # make sure this exists
+
+def create_character(name, postings_df, comments_df, use_llm_summary=False):
     ids = postings_df.loc[name, "comment_ids"]
 
     if isinstance(ids, pd.Series):
@@ -149,10 +151,13 @@ def create_character(name, postings_df, comments_df):
     else:
         comment_ids = [cid for cid in ids.split(",") if cid.strip()]
 
-    comment_list = [ c for c in
-        (create_comment(cid, 0, comments_df) for cid in comment_ids) if c is not None
+    comment_list = [
+        c for c in (create_comment(cid, 0, comments_df) for cid in comment_ids)
+        if c is not None
     ]
+
     ratings_over_time = get_rating_over_time(name, postings_df, comments_df)
+
     pos = sum(1 for c in comment_list if c.sentiment == "positive")
     neg = sum(1 for c in comment_list if c.sentiment == "negative")
 
@@ -163,23 +168,36 @@ def create_character(name, postings_df, comments_df):
     else:
         summary = "We found that there is mixed sentiment from the community."
 
+    # compute score + sentiment
     sentiment_score = ratings_over_time[-1].rating if ratings_over_time else 100
     sentiment = comment_list[-1].sentiment if comment_list else "neutral"
 
+    # ranking 
     rank = (
         "A" if sentiment_score > 100
         else "C" if sentiment_score < 80
         else "B"
     )
 
-    return Character(
-        name, rank, len(comment_list),
-        sentiment, sentiment_score,
-        summary,
+    character = Character(
+        name,
+        rank,
+        len(comment_list),
+        sentiment,
+        sentiment_score,
+        summary, 
         ratings_over_time,
         comment_list,
         comment_list[:5]
     )
+
+    if use_llm_summary:
+        try:
+            character.summary = generate_character_summary(character)
+        except Exception:
+            pass  # keep fallback summary if LLM fails
+
+    return character
 #create_character("Jika")
 
 
