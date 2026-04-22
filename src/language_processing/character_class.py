@@ -4,7 +4,7 @@ from language_processing import sent_anal
 from datetime import datetime
 import re
 import joblib 
-from language_processing.git rag import generate_character_summary
+from language_processing.rag import generate_character_summary
 # from src.language_processing import similarity_calc
 
 #To speed up multiple calls of the functions.
@@ -137,8 +137,6 @@ class Character:
         #ask gabby what the difference was supposed to be... might be the ranked most relevant comments?
         self.retrieved = retrieved if retrieved is not None else[]
     
-
-from rag import generate_character_summary  # make sure this exists
 
 def create_character(name, postings_df, comments_df, use_llm_summary=False):
     ids = postings_df.loc[name, "comment_ids"]
