@@ -6,3 +6,13 @@ Werkzeug==2.2.2
 gunicorn==25.0.3
 python-dotenv
 git+https://github.com/MrPeterss/infosci-spark-client.git
+nltk
+pandas
+scikit-learn
+spacy
+numpy
+joblib
+datetime
+rapidfuzz
+requests
+
